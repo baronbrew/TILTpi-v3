@@ -360,6 +360,8 @@ export class TiltPiApp extends EventEmitter {
     },
     submitEmail({ color, email }) {
       if (!email) return;
+      this.lastEmail = email; // "Use as default email" turned on later adopts it
+      if (this.settings.global.useDefaultEmail) this.settings.setGlobal({ defaultEmail: email });
       const gMap = { '°P': 'Plato', '°Bx': 'Brix' };
       const tMap = { '°F': 'Fahrenheit', '°C': 'Celsius' };
       const g = this.settings.global;
@@ -371,6 +373,14 @@ export class TiltPiApp extends EventEmitter {
         Comment: '',
       });
       this.commands.submitComment.call(this, { color, comment });
+    },
+    setUseDefaultEmail({ value }) {
+      const on = !!value;
+      // On: remember the email just used (if any). Off: forget it.
+      this.settings.setGlobal({
+        useDefaultEmail: on,
+        defaultEmail: on ? this.settings.global.defaultEmail || this.lastEmail || '' : '',
+      });
     },
     submitComment({ color, comment }) {
       if (!comment || !color) return;

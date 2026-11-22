@@ -28,6 +28,8 @@ export const GLOBAL_DEFAULTS = Object.freeze({
   screenTimeout: null, // seconds; null = never chosen
   locale: '', // date format, e.g. 'en-US'; '' = the Pi's system locale (legacy)
   tempPointsUnit: '', // '°F' once temperature cal points are stored in °F (see migrateTempPoints)
+  useDefaultEmail: false, // Logging tab "Use as default email"
+  defaultEmail: '', // filled into "Enter GMAIL email" when focused (only kept while the toggle is on)
 });
 
 const TILT_FIELDS = ['Beer', 'actualSGPoints', 'uncalSGPoints', 'actualTempPoints', 'uncalTempPoints', 'cloudURLs'];

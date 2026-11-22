@@ -88,7 +88,10 @@ export default function LoggingTab({ state, send, color, setColor }) {
       <Group title="Quick Start" key="quick">
         <TiltSelect state={state} color={color} setColor={setColor} />
         <TextInput label="Set Beer Name" value={beerText} onCommit={(v) => send('setBeerName', { color, value: v })} />
-        <TextInput label="Enter GMAIL email" value="" onCommit={(v) => send('submitEmail', { color, email: v })} />
+        <TextInput label="Enter GMAIL email" value="" fillOnFocus={g.useDefaultEmail ? g.defaultEmail : undefined}
+          onCommit={(v) => send('submitEmail', { color, email: v })} />
+        <Switch label="Use as default email" checked={!!g.useDefaultEmail}
+          onChange={(v) => send('setUseDefaultEmail', { value: v })} />
         <CloudStatus state={state} color={color} />
       </Group>
 

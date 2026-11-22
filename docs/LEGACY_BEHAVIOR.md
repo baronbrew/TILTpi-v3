@@ -76,6 +76,11 @@ differences — everything else should be identical. `legacy/flow.json` is the s
   kept as given; toast "Beer name set for COLOR"); Enter GMAIL email → comment
   `{"template","email","gunits","tunits","Comment":""}` + immediate post (lastpost=0, lastlocalpost=0),
   toast "Sending: email", box cleared after 0.5 s; Cloud Status.
+  *Port addition (requested):* "Use as default email" switch under the email box (settings
+  `useDefaultEmail`, `defaultEmail`). While on, each submitted email becomes the default (turning it
+  on adopts the last email submitted since start); turning it off forgets it. The default fills the
+  box (selected) when it's focused; an untouched autofill is only submitted by Enter, not by leaving.
+  *Port fix:* text boxes committed twice on Enter (commit + blur); now once.
 - Cloud Settings: Cloud URL box (default URL shown when "Use Default" on, else this color's custom
   URLs or "Not set for COLOR"; entering text sets this color's custom URLs, toast lists them);
   *Port change (requested):* with "Use Default" off, the selected Tilt's custom URLs are shown one

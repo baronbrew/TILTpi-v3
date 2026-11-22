@@ -81,14 +81,23 @@ export function Switch({ label, checked, onChange }) {
 }
 
 /** Text box that sends on Enter or when it loses focus (legacy ui_text_input with delay 0). */
-export function TextInput({ label, value, onCommit, clearAfterMs, autoFocus = false }) {
+/**
+ * Text box that commits on Enter or when leaving it. `fillOnFocus`: text put in the box when it's
+ * focused (e.g. the default email); that text is only committed by Enter, not by just leaving.
+ */
+export function TextInput({ label, value, onCommit, clearAfterMs, autoFocus = false, fillOnFocus }) {
   const [draft, setDraft] = useState(null); // null = not editing, show server value
+  const enter = useRef(false);
   const shown = draft ?? (value ?? '');
   const commit = () => {
+    const viaEnter = enter.current;
+    enter.current = false;
     if (draft === null) return;
     const v = draft;
     setDraft(null);
-    if (v !== (value ?? '')) onCommit(v);
+    if (v === (value ?? '')) return;
+    if (fillOnFocus && v === fillOnFocus && !viaEnter) return; // autofill untouched: needs Enter
+    onCommit(v);
   };
   return (
     <div className={'w w-input' + (String(shown) !== '' ? ' has-value' : '')}>
@@ -97,12 +106,22 @@ export function TextInput({ label, value, onCommit, clearAfterMs, autoFocus = fa
         <input
           value={shown}
           autoFocus={autoFocus}
-          onFocus={() => setDraft(String(value ?? ''))}
+          onFocus={(e) => {
+            const fill = fillOnFocus && !value ? fillOnFocus : String(value ?? '');
+            setDraft(fill);
+            if (fill && fillOnFocus) {
+              const el = e.target;
+              setTimeout(() => el.select()); // easy to type over
+            }
+          }}
           onChange={(e) => setDraft(e.target.value)}
           onBlur={commit}
           onKeyDown={(e) => {
             // Leaving the box commits (onBlur). Committing here too sent every value twice.
-            if (e.key === 'Enter') e.currentTarget.blur();
+            if (e.key === 'Enter') {
+              enter.current = true;
+              e.currentTarget.blur();
+            }
           }}
         />
       </label>
