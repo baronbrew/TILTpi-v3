@@ -81,22 +81,45 @@ jobs:
           locale: en_GB.UTF-8
           timezone: America/Los_Angeles
           wpa-country: US
-          compression: xz
-          compression-level: 6
+          # Compressed below, after the boot partition has been checked.
+          compression: none
           # The action's own cleanup purges a fixed package list that breaks when the runner
           # image changes; we free space in the step above instead.
           increase-runner-disk-size: false
           verbose-output: true
 
+      # Windows/macOS refuse to auto-mount a FAT volume flagged dirty or damaged ("Full Repair
+      # Needed"), which hides the bootfs drive users need for SETUP files. Check and repair it,
+      # clear the dirty flag, then compress.
+      - name: Check boot partition and compress
+        id: finish
+        run: |
+          IMG="${{ steps.build.outputs.image-path }}"
+          ls -la "$IMG"
+          sudo apt-get install -y dosfstools xz-utils >/dev/null
+          LOOP=$(sudo losetup -P --show -f "$IMG")
+          sudo partprobe "$LOOP" || true
+          sudo fdisk -l "$LOOP"
+          echo "--- fsck.vfat (check only) ---"
+          sudo fsck.vfat -n -v "${LOOP}p1" || true
+          echo "--- fsck.vfat (repair) ---"
+          sudo fsck.vfat -a -w -V "${LOOP}p1" || true
+          echo "--- fsck.vfat (after) ---"
+          sudo fsck.vfat -n "${LOOP}p1"
+          sudo losetup -d "$LOOP"
+          sudo xz -T0 -6 "$IMG"
+          sudo chown "$(id -u):$(id -g)" "$IMG.xz"
+          echo "image=$IMG.xz" >> "$GITHUB_OUTPUT"
+
       - uses: actions/upload-artifact@v4
         if: ${{ !startsWith(github.ref, 'refs/tags/') }}
         with:
           name: ${{ matrix.name }}
-          path: ${{ steps.build.outputs.image-path }}
+          path: ${{ steps.finish.outputs.image }}
           compression-level: 0
           retention-days: 7
 
       - uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: ${{ steps.build.outputs.image-path }}
+          files: ${{ steps.finish.outputs.image }}
