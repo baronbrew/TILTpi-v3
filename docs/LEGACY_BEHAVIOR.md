@@ -153,7 +153,10 @@ differences — everything else should be identical. `legacy/flow.json` is the s
 - `cloud_log_<color>.json` (`{"Color","Comment"(email),"Beer":[name,true]}`): processed once the
   first Tilt is displayed after boot: default cloud URL, comment = email, cloud+local logging on,
   15 min intervals, beer name, post now, log reset; after 60 s comment = dashboard IP link and post
-  again. File removed.
+  again. File removed. *Port change (requested):* instead of the fixed 60 s, the email post waits
+  for an IPv4 address (polled every 2 s, max 5 min), and the dashboard-link post waits for that
+  post's reply to set the cloud sheet id in Beer[1] (max 60 s; skipped with no email), then uses the
+  IP read at that moment (legacy-port used the one seen 10 s after startup).
   *Port addition:* SETUP.html now builds this file with `JSON.stringify` (quotes in names no longer
   break it) and adds the browser's `Timezone` (IANA name) and `Locale`. At startup, before Bluetooth
   scanning begins, the app applies `Timezone` with `timedatectl` and to its own process, so the

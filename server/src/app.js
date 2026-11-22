@@ -20,15 +20,34 @@ import { normalizeLocale, temperatureUnitFor } from './locale.js';
 import { MdnsWatchdog, CHECK_MS as MDNS_CHECK_MS } from './system/mdns.js';
 import { currentVersion, checkLatestRelease, startUpdate } from './system/updater.js';
 
-const SEND_IP_DELAY_MS = 60000; // "Send IP Addr" 60 s after cloud provisioning
+// Cloud provisioning (SETUP.html) waits for these instead of legacy's fixed 60 s before "Send IP Addr".
+const WAIT_POLL_MS = 2000;
+const WAIT_FOR_IP_MS = 5 * 60000; // network up (has an IPv4 address)
+const WAIT_FOR_REGISTRATION_MS = 60000; // first post's reply assigned the cloud sheet
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+/** Polls `check` until it returns truthy or `timeoutMs` passes; returns the last result. */
+async function waitFor(check, timeoutMs, pollMs = WAIT_POLL_MS) {
+  const end = Date.now() + timeoutMs;
+  for (;;) {
+    const v = await check();
+    if (v || Date.now() >= end) return v;
+    await sleep(pollMs);
+  }
+}
 
 async function dryRunCloudFetch(url, { body }) {
   console.log(`[dry-run] POST ${url} ${body}`);
   // Shaped like the Google Script's reply (HTML in "result"), so the UI can be checked in dev.
-  const color = new URLSearchParams(decodeURI(body)).get('Color') ?? 'BLACK';
+  const params = new URLSearchParams(decodeURI(body));
+  const color = params.get('Color') ?? 'BLACK';
+  const beer = params.get('Beer') ?? 'Untitled';
+  // An email comment registers a new cloud log: the reply carries "name,<sheet id>", like the script.
+  const beername = (params.get('Comment') ?? '').includes('@') ? beer.split(',')[0] + ',dryrun-sheet' : beer;
   return new Response(JSON.stringify({
-    result: `Untitled<br><strong>TILT | ${color}</strong><br>Success logging to the cloud. (dry-run, not sent)`
+    result: `${beer.split(',')[0]}<br><strong>TILT | ${color}</strong><br>Success logging to the cloud. (dry-run, not sent)`
       + '<br><a class="link external" href="https://example.com/">View Cloud Log</a>',
+    beername,
     tiltcolor: color,
   }));
 }
@@ -209,15 +228,39 @@ export class TiltPiApp extends EventEmitter {
         localloggingInterval: 15,
       });
       this.settings.setTilt(color, { Beer: Array.isArray(file.Beer) ? file.Beer : ['Untitled', true] });
-      const rt = this.settings.runtime(color);
-      rt.comment = file.Comment ?? '';
-      rt.lastpost = 0;
       this.local.reset();
-      setTimeout(() => {
-        rt.comment = this.ui.ipLink || 'http://tiltpi.local:1880/ui';
-        rt.lastpost = 0;
-      }, SEND_IP_DELAY_MS).unref?.();
+      this.#sendSetupPosts(color, file.Comment ?? '').catch((e) => console.warn('[provisioning]', e.message));
     }
+  }
+
+  /**
+   * "Set Up Tilt Pi" + "Send IP Addr": post the email (the cloud script creates the log and emails
+   * it), then post the dashboard link (emailed too). Legacy posted at once and sent the link after a
+   * fixed 60 s; here each post waits for what it needs instead.
+   */
+  async #sendSetupPosts(color, email) {
+    const rt = this.settings.runtime(color);
+    const hasIp = async () => {
+      const ip = await sys.getIpv4();
+      return /^\d+\.\d+\.\d+\.\d+$/.test(ip) && !/^(127|169\.254)\./.test(ip) ? ip : '';
+    };
+    // 1. Network up, so the email post isn't lost to a WiFi connection that's still coming up.
+    if (!(await waitFor(hasIp, WAIT_FOR_IP_MS))) console.warn('[provisioning] no IP address yet; posting anyway');
+    rt.comment = email;
+    rt.lastpost = 0;
+    // 2. The reply to that post sets the cloud sheet id (Beer[1]); the link post must carry it or
+    //    the script would start a second log. No email → no sheet to wait for (legacy didn't either).
+    if (email) {
+      const registered = () => this.settings.tilt(color).Beer?.[1] !== true;
+      if (!(await waitFor(registered, WAIT_FOR_REGISTRATION_MS))) {
+        console.warn('[provisioning] cloud log not confirmed yet; sending dashboard link anyway');
+      }
+    }
+    // 3. Dashboard link from the current address (not the one seen at startup).
+    await this.refreshLinks();
+    rt.comment = this.ui.ipLink || 'http://tiltpi.local:1880/ui';
+    rt.lastpost = 0;
+    console.log(`[provisioning] ${color}: setup email${email ? '' : ' (none)'} and dashboard link ${rt.comment} queued`);
   }
 
   // ------------------------------------------------------------------ UI state
