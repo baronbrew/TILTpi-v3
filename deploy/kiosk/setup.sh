@@ -1,12 +1,14 @@
 #!/bin/bash
 # Configure the local display for this OS flavor. Run as pi (uses sudo). Idempotent.
-#  - Desktop (labwc session present): Chromium kiosk from ~/.config/labwc/autostart
+#  - Desktop (labwc session present): ~/.config/labwc/autostart → desktop_kiosk.sh
+#    (Tkinter on <=600 MB RAM, else Chromium)
 #  - Lite: console autologin on tty1 → launch_kiosk.sh (Tkinter on <=600 MB RAM, else Chromium)
 set -euo pipefail
 DIR="$(cd "$(dirname "$0")" && pwd)"
 MARK="# tiltpi-kiosk"
 
 if [ -f /usr/share/wayland-sessions/rpd-labwc.desktop ]; then
+  sudo apt-get install -y --no-install-recommends python3-tk || echo "WARN: could not install python3-tk"
   mkdir -p ~/.config/labwc
   touch ~/.config/labwc/autostart
   sed -i "/$MARK/d" ~/.config/labwc/autostart
