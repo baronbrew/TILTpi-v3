@@ -119,6 +119,9 @@ differences — everything else should be identical. `legacy/flow.json` is the s
   (Range Booster off). *Port fixes:* a bare name that doesn't resolve is retried as `<name>.local`;
   names are looked up outside the 5 s fetch timeout and cached 5 min; failed hosts are retried every
   30 s (legacy re-polled dead hosts every 2.5 s).
+- *Port addition:* Dashboard Link group shows a "Local Name Check" light with a "Test & Reset Local
+  Name" button. Every 5 min (first after 60 s) the app looks up its own `<hostname>.local`; if that
+  fails it restarts avahi-daemon and checks again (`server/src/system/mdns.js`).
 - Raspberry Pi: Screen Auto Off (Never/1 min/10 min/2 h/8 h/16 h), Screen Zoom 0.5–3
   (toast "Restart to Enable New Settings"), BT stability fix / revert for RPi3 (btuart baud),
   Restart, Shutdown. **CHANGED**: instead of `sed`-editing `~/xinitrc_chromium.sh` / LXDE autostart, the app
