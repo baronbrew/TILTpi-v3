@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { legacyFunction, Store, fixedDate } from './legacyHarness.js';
 import { enrichScan } from '../src/tilt/enrich.js';
 import { Smoother } from '../src/tilt/smoothing.js';
-import { applyCalibration, addPoint, removePoint } from '../src/tilt/calibration.js';
+import { applyCalibration, addPoint, removePoint, cToFPoint, toPointArray } from '../src/tilt/calibration.js';
 import { cloudPostsFor } from '../src/logging/cloud.js';
 import { localLogLineFor } from '../src/logging/local.js';
 import { UUID_TO_COLOR } from '../src/tilt/colors.js';
@@ -47,12 +47,14 @@ function makeEnv(opts) {
     [`actualTemppoints-${color}`]: tempPoints.actual,
     [`uncalTemppoints-${color}`]: tempPoints.uncal,
   });
+  // The port stores temperature points in °F; legacy kept them in the display unit.
+  const storedTemp = (pts) => (displayUnits === '°C' ? toPointArray(pts).map(cToFPoint) : pts);
   const tilt = {
     Beer: ['IPA', true],
     actualSGPoints: sgPoints.actual,
     uncalSGPoints: sgPoints.uncal,
-    actualTempPoints: tempPoints.actual,
-    uncalTempPoints: tempPoints.uncal,
+    actualTempPoints: storedTemp(tempPoints.actual),
+    uncalTempPoints: storedTemp(tempPoints.uncal),
   };
   const runtime = new Map();
   const settings = {

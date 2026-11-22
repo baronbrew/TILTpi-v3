@@ -102,6 +102,29 @@ export function toPointArray(v) {
   return [];
 }
 
+// ---- Temperature points units ----
+// Stored temperature points are always °F (what the Tilt broadcasts), so switching °F/°C never
+// invalidates them. Legacy kept them in the display unit, and the Interpolate step (above) and the
+// legacy backup files still expect that, so they're converted to the display unit when a reading is
+// enriched. A point entered in °C is stored with 2 decimals so it converts back exactly.
+
+/** °C point (string/number) → °F string. */
+export function cToFPoint(c) {
+  return (Number(c) * 1.8 + 32).toFixed(2);
+}
+
+/** °F point → °C string: 1 decimal like legacy points ("20.0"), 2 when needed ("0.56"). */
+export function fToCPoint(f) {
+  const v = Math.round(((Number(f) - 32) / 1.8) * 100) / 100;
+  return Number.isInteger(Math.round(v * 100) / 10) ? v.toFixed(1) : v.toFixed(2);
+}
+
+/** Stored (°F) points → list in the display unit. */
+export function tempPointsInUnits(points, units) {
+  const list = toPointArray(points);
+  return units === '°C' ? list.map(fToCPoint) : list;
+}
+
 /** "Add SG/Temp Cal Points": push into each list and sort each independently. */
 export function addPoint(uncalPoints, actualPoints, uncal, actual) {
   const u = [...toPointArray(uncalPoints), uncal].sort(byNumber);

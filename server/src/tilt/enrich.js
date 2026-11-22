@@ -2,6 +2,7 @@
 // payload used everywhere else (display, logging, /macid, legacy backup files).
 // Field names, order and value types intentionally match the legacy payload.
 import { colorForUuid } from './colors.js';
+import { tempPointsInUnits } from './calibration.js';
 import { formatDateTime } from '../locale.js';
 
 export const DEFAULT_CLOUD_URL =
@@ -33,8 +34,9 @@ export function enrichScan(scan, settings, date = new Date()) {
   p.Beer = tilt.Beer ?? ['Untitled', true];
   p.actualSGPoints = (tilt.actualSGPoints ?? []).toString();
   p.unCalSGPoints = (tilt.uncalSGPoints ?? []).toString();
-  p.actualTempPoints = (tilt.actualTempPoints ?? []).toString();
-  p.unCalTempPoints = (tilt.uncalTempPoints ?? []).toString();
+  // Stored in °F; Interpolate and the legacy backup want the display unit (see calibration.js).
+  p.actualTempPoints = tempPointsInUnits(tilt.actualTempPoints ?? [], g.displayUnits).toString();
+  p.unCalTempPoints = tempPointsInUnits(tilt.uncalTempPoints ?? [], g.displayUnits).toString();
 
   p.timeStamp = date.getTime();
   const timeZone = date.getTimezoneOffset() / 24 / 60;

@@ -6,7 +6,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { EventEmitter } from 'node:events';
-import { toPointArray } from './tilt/calibration.js';
+import { toPointArray, cToFPoint } from './tilt/calibration.js';
 
 export const GLOBAL_DEFAULTS = Object.freeze({
   useDefaultCloudURL: true,
@@ -27,6 +27,7 @@ export const GLOBAL_DEFAULTS = Object.freeze({
   screenZoom: 1,
   screenTimeout: null, // seconds; null = never chosen
   locale: '', // date format, e.g. 'en-US'; '' = the Pi's system locale (legacy)
+  tempPointsUnit: '', // '°F' once temperature cal points are stored in °F (see migrateTempPoints)
 });
 
 const TILT_FIELDS = ['Beer', 'actualSGPoints', 'uncalSGPoints', 'actualTempPoints', 'uncalTempPoints', 'cloudURLs'];
@@ -51,11 +52,31 @@ export class Settings extends EventEmitter {
       const saved = JSON.parse(fs.readFileSync(this.file, 'utf8'));
       Object.assign(this.global, saved.global ?? {});
       this.tilts = saved.tilts ?? {};
+      if (this.#migrateTempPoints()) this.saveNow();
       return { migrated: false };
     }
     const migrated = this.#importLegacy();
+    this.#migrateTempPoints();
     this.saveNow();
     return { migrated };
+  }
+
+  /**
+   * One time: temperature cal points used to be in the display unit (legacy, and this port before
+   * they were stored in °F). Points saved while the display unit was °C are converted to °F.
+   */
+  #migrateTempPoints() {
+    if (this.global.tempPointsUnit === '°F') return false;
+    if (this.global.displayUnits === '°C') {
+      for (const t of Object.values(this.tilts)) {
+        for (const k of ['uncalTempPoints', 'actualTempPoints']) {
+          if (t[k] !== undefined) t[k] = toPointArray(t[k]).map(cToFPoint);
+        }
+      }
+      console.log('[settings] converted °C temperature calibration points to °F');
+    }
+    this.global.tempPointsUnit = '°F';
+    return true;
   }
 
   /** Per-Tilt persisted settings (created on demand, not saved until changed). */

@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { Masonry, Group, Button, Numeric, Switch } from '../widgets.jsx';
 import { TiltSelect } from './LoggingTab.jsx';
-import { gravityUnit } from '../units.js';
+import { gravityUnit, tempPointShow } from '../units.js';
 
 function PointsTable({ title, uncal, actual, onDelete, show = (v) => v }) {
   return (
@@ -29,16 +29,16 @@ function PointsTable({ title, uncal, actual, onDelete, show = (v) => v }) {
 /**
  * One calibration group. While "Get Current" is on, both numerics follow the live reading every
  * second; changing either numeric turns it off (legacy behavior).
- * Gravity is shown and entered in the System tab's unit (SG/Plato/Brix) but always sent and stored
- * as SG, so existing points stay valid when the unit changes. (Temperature points are in the
- * display unit, as legacy.)
+ * Values are shown and entered in the System tab's units. Gravity is converted to SG here before
+ * sending; temperature is sent in the display unit and the server stores it in °F. Either way the
+ * stored points stay valid when the unit changes.
  */
 function CalibrationGroup({ kind, state, color, send }) {
   const isSG = kind === 'SG';
   const unit = gravityUnit(state.settings.fermdisplayUnits);
   const [auto, setAuto] = useState(true);
   // Values typed in the old unit would be misread after a unit change: go back to live values.
-  useEffect(() => setAuto(true), [unit.name]);
+  useEffect(() => setAuto(true), [unit.name, state.settings.displayUnits]);
   const [uncal, setUncal] = useState(undefined);
   const [actual, setActual] = useState(undefined);
 
@@ -81,7 +81,7 @@ function CalibrationGroup({ kind, state, color, send }) {
         title={isSG ? `${g} Calibration Points:` : 'Temp Calibration Points:'}
         uncal={points.uncal}
         actual={points.actual}
-        show={isSG ? unit.show : undefined}
+        show={isSG ? unit.show : (f) => tempPointShow(f, state.settings.displayUnits)}
         onDelete={(index) => send(isSG ? 'removeSGPoint' : 'removeTempPoint', { color, index })}
       />
       <Button label="Delete All" danger onClick={() => color && send(isSG ? 'clearSGPoints' : 'clearTempPoints', { color })} />

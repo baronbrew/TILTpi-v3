@@ -103,6 +103,12 @@ differences — everything else should be identical. `legacy/flow.json` is the s
   (`web/src/units.js`, same formulas as the server) before `addSGPoint`, so points are still stored
   in SG and stay valid when the unit changes. Numerics can be typed again (legacy ui_numeric).
 - Temp: same with Ice Water (32.0 °F or 0.0 °C by display units), numerics −20…220 step .1.
+  *Port change (requested):* legacy stored temp points in the display unit, so switching °F/°C
+  silently broke them. The port stores them in °F (`addTempPoint` converts °C input; °C entries keep
+  2 decimals, e.g. 20.0 °C → "68.00", so they convert back exactly; Ice Water = "32.0"). When a
+  reading is enriched they are converted to the display unit, so Interpolate and the legacy backup
+  files see exactly what legacy did. One-time migration (`settings.tempPointsUnit`): if the display
+  unit is °C when the port first loads settings, existing temp points are converted °C → °F.
 
 ## 9. System tab
 - Time: time zone dropdown + Set Time Zone (toast + status "Restart Needed / Click restart to save

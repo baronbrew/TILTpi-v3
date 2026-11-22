@@ -1,4 +1,4 @@
-// Gravity units for the calibration screen. Calibration points are always stored in SG (as legacy),
+// Units for the calibration screen. Gravity points are stored in SG and temperature points in °F,
 // so switching units never invalidates them; the screen shows and accepts the selected unit.
 // SG -> Plato/Brix are the same formulas the server uses (server/src/tilt/calibration.js).
 
@@ -39,4 +39,11 @@ export function gravityUnit(fermdisplayUnits) {
       step: u.step,
     }),
   };
+}
+
+/** Stored temperature point (°F) shown in the display unit, 1 decimal. */
+export function tempPointShow(f, displayUnits) {
+  if (f === undefined || f === null || f === '') return '';
+  const v = displayUnits === '°C' ? (Number(f) - 32) / 1.8 : Number(f);
+  return v.toFixed(1);
 }

@@ -6,7 +6,7 @@ import { Settings } from './settings.js';
 import { isTiltUuid } from './tilt/colors.js';
 import { enrichScan, DEFAULT_CLOUD_URL } from './tilt/enrich.js';
 import { Smoother } from './tilt/smoothing.js';
-import { applyCalibration, addPoint, removePoint } from './tilt/calibration.js';
+import { applyCalibration, addPoint, removePoint, cToFPoint } from './tilt/calibration.js';
 import { ReadingStore } from './tilt/readings.js';
 import { ScanSnapshot } from './tilt/scanSnapshot.js';
 import { CloudLogger } from './logging/cloud.js';
@@ -425,9 +425,12 @@ export class TiltPiApp extends EventEmitter {
     },
     addTempPoint({ color, kind, uncal, actual }) {
       if (!color) return;
-      const u = uncal === undefined || uncal === null || uncal === '' ? 0 : Number(uncal).toFixed(1);
-      let a = actual === undefined || actual === null || actual === '' ? 0 : Number(actual).toFixed(1);
-      if (kind === 'ice') a = this.settings.global.displayUnits == '°F' ? '32.0' : '0.0';
+      // Entered in the display unit; stored in °F (see tilt/calibration.js).
+      const inC = this.settings.global.displayUnits === '°C';
+      const toF = (v) => (inC ? cToFPoint(v) : Number(v).toFixed(1));
+      const u = uncal === undefined || uncal === null || uncal === '' ? toF(0) : toF(uncal);
+      let a = actual === undefined || actual === null || actual === '' ? toF(0) : toF(actual);
+      if (kind === 'ice') a = '32.0';
       const t = this.settings.tilt(color);
       const r = addPoint(t.uncalTempPoints, t.actualTempPoints, u, a);
       this.settings.setTilt(color, { uncalTempPoints: r.uncal, actualTempPoints: r.actual });
