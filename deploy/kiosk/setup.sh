@@ -11,7 +11,7 @@ if [ -f /usr/share/wayland-sessions/rpd-labwc.desktop ]; then
   touch ~/.config/labwc/autostart
   sed -i "/$MARK/d" ~/.config/labwc/autostart
   echo "$DIR/desktop_kiosk.sh & $MARK" >> ~/.config/labwc/autostart
-  sudo raspi-config nonint do_boot_behaviour B4   # desktop autologin
+  sudo raspi-config nonint do_boot_behaviour B4 || echo "WARN: could not set desktop autologin"
   echo "Desktop kiosk configured."
 else
   sudo apt-get install -y --no-install-recommends xserver-xorg xinit openbox unclutter x11-xserver-utils python3-tk
@@ -20,6 +20,6 @@ else
   touch ~/.bash_profile
   sed -i "/$MARK/d" ~/.bash_profile
   echo "[ -z \"\$DISPLAY\" ] && [ \"\$(tty)\" = /dev/tty1 ] && exec $DIR/launch_kiosk.sh $MARK" >> ~/.bash_profile
-  sudo raspi-config nonint do_boot_behaviour B2   # console autologin
+  sudo raspi-config nonint do_boot_behaviour B2 || echo "WARN: could not set console autologin"
   echo "Console kiosk configured."
 fi

@@ -18,7 +18,11 @@ export async function importWifi(bootDir) {
   }
   let ssid;
   for (const line of text.split(/\r?\n/)) {
-    if (line.indexOf('ssid') > -1) {
+    const country = line.match(/^\s*country=([A-Za-z]{2})\s*$/);
+    if (country) {
+      // Pi OS keeps WiFi rfkill-blocked until a regulatory country is set.
+      await run('raspi-config', ['nonint', 'do_wifi_country', country[1].toUpperCase()], { sudo: true });
+    } else if (line.indexOf('ssid') > -1) {
       ssid = unquote(line.split('=')[1] ?? '');
     } else if (line.indexOf('psk') > -1) {
       const psk = unquote(line.split('=')[1] ?? '');

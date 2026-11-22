@@ -1,0 +1,9 @@
+nodejs
+npm
+git
+bluez
+rfkill
+libbluetooth-dev
+libudev-dev
+build-essential
+python3

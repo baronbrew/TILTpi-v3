@@ -1,0 +1,68 @@
+# Builds the two Tilt Pi SD card images with pi-gen:
+#   tiltpi-desktop-arm64  Raspberry Pi OS with desktop, 64-bit (Pi 3 and newer) + Chromium kiosk
+#   tiltpi-lite-armhf     Raspberry Pi OS Lite, 32-bit (Pi Zero W and newer) + Tkinter/Chromium display
+# Runs on version tags (v*) and on demand. Tagged builds attach the images to the GitHub release.
+name: Build SD card images
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: tiltpi-desktop-arm64
+            pi-gen-version: arm64
+            stage-list: stage0 stage1 stage2 stage3 stage4 ./image/stage-tiltpi
+          - name: tiltpi-lite-armhf
+            pi-gen-version: master
+            stage-list: stage0 stage1 stage2 ./image/stage-tiltpi
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Put this checkout into the image stage
+        run: |
+          rsync -a --exclude image/stage-tiltpi/00-tiltpi/files ./ image/stage-tiltpi/00-tiltpi/files/TILTpi-v3/
+          git -C image/stage-tiltpi/00-tiltpi/files/TILTpi-v3 remote set-url origin https://github.com/${{ github.repository }}.git
+
+      - uses: usimd/pi-gen-action@v1
+        id: build
+        with:
+          image-name: ${{ matrix.name }}
+          pi-gen-version: ${{ matrix.pi-gen-version }}
+          release: trixie
+          stage-list: ${{ matrix.stage-list }}
+          hostname: tiltpi
+          username: pi
+          password: ${{ secrets.IMAGE_PI_PASSWORD || 'tilt' }}
+          disable-first-boot-user-rename: 1
+          enable-ssh: 1
+          locale: en_GB.UTF-8
+          timezone: America/Los_Angeles
+          wpa-country: US
+          compression: xz
+          compression-level: 6
+          increase-runner-disk-size: true
+          verbose-output: true
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        with:
+          name: ${{ matrix.name }}
+          path: ${{ steps.build.outputs.image-path }}
+          compression-level: 0
+          retention-days: 7
+
+      - uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: ${{ steps.build.outputs.image-path }}
