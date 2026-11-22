@@ -16,6 +16,7 @@ import { RangeBooster, MAX_RANGERS } from './rangeBoost.js';
 import { UsbExporter } from './system/usb.js';
 import * as sys from './system/system.js';
 import { importWifi, takeCloudLogFiles } from './system/provisioning.js';
+import { MdnsWatchdog, CHECK_MS as MDNS_CHECK_MS } from './system/mdns.js';
 import { currentVersion, checkLatestRelease, startUpdate } from './system/updater.js';
 
 const SEND_IP_DELAY_MS = 60000; // "Send IP Addr" 60 s after cloud provisioning
@@ -48,9 +49,12 @@ export class TiltPiApp extends EventEmitter {
       systemTime: '',
       ipLink: '',
       hostnameLink: '',
+      mdns: { ok: null, text: 'Not checked yet' },
       version: currentVersion(config.appDir),
       latest: { enabled: false, label: '', text: '' },
     };
+
+    this.mdns = new MdnsWatchdog({ onStatus: (s) => this.#setUi({ mdns: s }) });
 
     this.cloud = new CloudLogger({
       settings: this.settings,
@@ -94,6 +98,11 @@ export class TiltPiApp extends EventEmitter {
     this.#every(60000, () => this.refreshSystemTime(), true);
     this.#every(86400000, () => this.refreshLatestRelease(), true);
     setTimeout(() => this.refreshLinks(), 10000).unref?.();
+    if (!this.config.dryRun) {
+      // Local name self-check (see system/mdns.js); first one after avahi has had time to start.
+      setTimeout(() => this.mdns.testAndReset(), 60000).unref?.();
+      this.#every(MDNS_CHECK_MS, () => this.mdns.testAndReset());
+    }
     this.refreshLinks();
 
     if (this.scanner) {
@@ -414,6 +423,10 @@ export class TiltPiApp extends EventEmitter {
         message: 'http://' + (this.config.dryRun ? name : sys.getHostname()) + '.local:1880/ui',
         dialog: { ok: 'Restart Now', cancel: 'Restart Later', command: 'reboot' },
       });
+    },
+    async testMdns() {
+      const s = await this.mdns.testAndReset();
+      this.toast({ topic: s.ok ? 'Local Name' : 'Alert', message: s.text });
     },
     async reboot() {
       this.toast({ message: 'Restarting...' });

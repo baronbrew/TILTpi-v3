@@ -96,6 +96,9 @@ export default function SystemTab({ state, statics, send }) {
       <Group title="Dashboard Link (local URL)" key="link">
         <Text label="Tilt Pi Local IP Address Link" value={ui.ipLink} layout="col-center" />
         <Text label="Tilt Pi Local Hostname Link" value={ui.hostnameLink} layout="col-center" />
+        <Text label="Local Name Check" layout="col-center"
+          value={<><span className={'ranger-light ' + LIGHT[String(ui.mdns?.ok ?? undefined)]} />{ui.mdns?.text}</>} />
+        <Button label="Test & Reset Local Name" icon="refresh" onClick={() => send('testMdns')} />
         <Button label="Reset Link to tiltpi.local:1880/ui" onClick={() => send('setHostname', { name: 'tiltpi' })} />
         <TextInput label="Set New Hostname (ex. tiltpi-north)" value="" onCommit={(v) => send('setHostname', { name: v })} />
       </Group>
