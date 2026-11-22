@@ -19,6 +19,10 @@ const PLACEHOLDER = {
 function TiltCard({ r: reading, now }) {
   const r = reading ?? PLACEHOLDER;
   const color = cssColor(r.displayColor?.[0]);
+  // Smoothing on: flag the values as averages so it isn't forgotten.
+  const avg = r.smoothSwitch ? (
+    <span className="avg" title={`Smoothing on: ${r.numberSamples} min moving average`}>AVG</span>
+  ) : null;
   return (
     <section className={'group tilt-card' + (reading ? '' : ' empty')} aria-hidden={reading ? undefined : 'true'}>
       <h1 className="one-line" title={r.Beer?.[0]}>{r.Beer?.[0]}</h1>
@@ -35,12 +39,14 @@ function TiltCard({ r: reading, now }) {
       <h2>
         {noNegZero(r.ferm)}
         <span className="unit">{r.fermunits}</span>
+        {avg}
       </h2>
       <div style={{ background: color, height: 10, width: `${(r.SG - 0.99) / 0.0013}%` }} />
       <h1>Temperature: {num1(r.displayuncalTemp)} (pre-calibrated)</h1>
       <h2>
         {num1(r.displayTemp)}
         <span className="unit">{r.tempunits}</span>
+        {avg}
       </h2>
       <div style={{ background: color, height: 10, width: `${(r.Temp - 30) / 1.85}%` }} />
       <h5>{r.formatteddate}</h5>

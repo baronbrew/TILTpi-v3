@@ -176,18 +176,23 @@ class Fetcher(threading.Thread):
 class ValueWithUnit(tk.Frame):
     """Big reading with a smaller unit after it (e.g. "65.0" + "°F"), sharing one baseline."""
 
-    def __init__(self, parent, value_font, unit_font):
+    def __init__(self, parent, value_font, unit_font, avg_font):
         super().__init__(parent, bg=CARD_BG)
         self.value = tk.Label(self, font=value_font, bg=CARD_BG, fg=CARD_TEXT, padx=0, pady=0, bd=0)
         self.unit = tk.Label(self, font=unit_font, bg=CARD_BG, fg=CARD_TEXT, padx=0, pady=0, bd=0)
+        self.avg = tk.Label(self, font=avg_font, bg=CARD_BG, fg=CARD_TEXT, padx=0, pady=0, bd=0)
         self.value.pack(side="left", anchor="s")
-        # Bottom-aligned labels: lift the unit by the difference in descent so baselines match.
-        lift = max(0, value_font.metrics("descent") - unit_font.metrics("descent"))
-        self.unit.pack(side="left", anchor="s", pady=(0, lift))
+        # Bottom-aligned labels: lift each by the difference in descent so baselines match.
+        descent = value_font.metrics("descent")
+        self.unit.pack(side="left", anchor="s", pady=(0, max(0, descent - unit_font.metrics("descent"))))
+        self.avg.pack(side="left", anchor="s", padx=(avg_font.measure(" "), 0),
+                      pady=(0, max(0, descent - avg_font.metrics("descent"))))
 
-    def set(self, value, unit):
+    def set(self, value, unit, avg=False):
+        """avg: smoothing is on, so show a small "AVG" after the unit."""
         self.value.config(text=value)
         self.unit.config(text=unit)
+        self.avg.config(text="AVG" if avg else "")
 
 
 class Bar(tk.Canvas):
@@ -228,6 +233,8 @@ class TiltCard(tk.Frame):
         self.f_big = tkfont.Font(family=FONT, size=style["big"], weight="bold")
         # Unit (°F, °C, °P...) a little smaller than the number, like the web dashboard.
         self.f_unit = tkfont.Font(family=FONT, size=round(style["big"] * 0.65), weight="bold")
+        # "AVG" (smoothing on) at half the unit size.
+        self.f_avg = tkfont.Font(family=FONT, size=round(style["big"] * 0.325), weight="bold")
         self.f_h5 = tkfont.Font(family=MONO, size=style["h5"])
 
         pad = style["pad"]
@@ -272,7 +279,7 @@ class TiltCard(tk.Frame):
         f.columnconfigure(0, weight=1)
         pre = tk.Label(f, font=self.f_h1, bg=CARD_BG, fg=CARD_TEXT, anchor="w")
         pre.grid(row=0, column=0, sticky="ew", padx=lpad)
-        big = ValueWithUnit(f, self.f_big, self.f_unit)
+        big = ValueWithUnit(f, self.f_big, self.f_unit, self.f_avg)
         big.grid(row=1, column=0, sticky="ew", padx=lpad)
         bar = Bar(f)
         bar.grid(row=2, column=0, sticky="ew", pady=(3, 0))
@@ -296,7 +303,8 @@ class TiltCard(tk.Frame):
         gname = GRAVITY_NAMES.get(units, "Specific Gravity")
         self.sg_pre.config(text=(f"pre-cal {uncalferm}" if compact
                                  else f"{gname}: {uncalferm} (pre-calibrated)"))
-        self.sg.set(no_neg_zero(d.get('ferm', d.get('SG', '--'))), units)
+        smoothed = bool(d.get("smoothSwitch"))
+        self.sg.set(no_neg_zero(d.get('ferm', d.get('SG', '--'))), units, smoothed)
         self.sg_bar.set(bar_fraction(to_float(d.get("SG")), SG_MIN, SG_MAX), swatch)
 
         # Temperature: displayTemp calibrated, displayuncalTemp raw.
@@ -304,7 +312,7 @@ class TiltCard(tk.Frame):
         uncaltemp = no_neg_zero(d.get("displayuncalTemp", "--"))
         self.temp_pre.config(text=(f"pre-cal {uncaltemp}{tunits}" if compact
                                    else f"Temperature: {uncaltemp} (pre-calibrated)"))
-        self.temp.set(no_neg_zero(d.get('displayTemp', d.get('Temp', '--'))), tunits)
+        self.temp.set(no_neg_zero(d.get('displayTemp', d.get('Temp', '--'))), tunits, smoothed)
         self.temp_bar.set(bar_fraction(to_float(d.get("Temp")), TEMP_MIN, TEMP_MAX), swatch)
 
         # Footer: formatted date, then freshness + signal.
