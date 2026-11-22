@@ -23,7 +23,13 @@ const SEND_IP_DELAY_MS = 60000; // "Send IP Addr" 60 s after cloud provisioning
 
 async function dryRunCloudFetch(url, { body }) {
   console.log(`[dry-run] POST ${url} ${body}`);
-  return new Response(JSON.stringify({ result: 'success (dry-run, not sent)' }));
+  // Shaped like the Google Script's reply (HTML in "result"), so the UI can be checked in dev.
+  const color = new URLSearchParams(decodeURI(body)).get('Color') ?? 'BLACK';
+  return new Response(JSON.stringify({
+    result: `Untitled<br><strong>TILT | ${color}</strong><br>Success logging to the cloud. (dry-run, not sent)`
+      + '<br><a class="link external" href="https://example.com/">View Cloud Log</a>',
+    tiltcolor: color,
+  }));
 }
 
 export class TiltPiApp extends EventEmitter {
