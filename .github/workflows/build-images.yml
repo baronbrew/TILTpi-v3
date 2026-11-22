@@ -36,6 +36,21 @@ jobs:
           sudo docker image prune --all --force || true
           df -h /
 
+      # pi-gen master builds armhf inside an i386 Debian container. Build that container here
+      # first (same Dockerfile, so pi-gen reuses the cached layer) to retry Debian mirror
+      # hiccups and show apt's real error output if it fails.
+      - name: Pre-build pi-gen container
+        if: ${{ matrix.pi-gen-version == 'master' }}
+        run: |
+          git clone --depth 1 https://github.com/RPi-Distro/pi-gen.git /tmp/pi-gen-prebuild
+          for i in 1 2 3; do
+            docker build --progress=plain --platform linux/386 \
+              --build-arg BASE_IMAGE=docker.io/i386/debian:trixie \
+              -t pi-gen /tmp/pi-gen-prebuild && exit 0
+            echo "docker build attempt $i failed; retrying in 60 s"; sleep 60
+          done
+          exit 1
+
       - uses: actions/checkout@v4
 
       - name: Put this checkout into the image stage
