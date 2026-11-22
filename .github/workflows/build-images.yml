@@ -42,6 +42,14 @@ jobs:
       - name: Pre-build pi-gen container
         if: ${{ matrix.pi-gen-version == 'master' }}
         run: |
+          # The i386 build container has failed with "Temporary failure resolving
+          # 'deb.debian.org'", so give Docker explicit DNS servers.
+          echo '{"dns": ["8.8.8.8", "1.1.1.1"]}' | sudo tee /etc/docker/daemon.json
+          sudo systemctl restart docker
+          for p in linux/amd64 linux/386; do
+            echo "DNS check ($p):"
+            docker run --rm --platform $p docker.io/debian:trixie getent hosts deb.debian.org || echo "  DNS FAILED on $p"
+          done
           git clone --depth 1 https://github.com/RPi-Distro/pi-gen.git /tmp/pi-gen-prebuild
           for i in 1 2 3; do
             docker build --progress=plain --platform linux/386 \
