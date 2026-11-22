@@ -78,6 +78,10 @@ differences — everything else should be identical. `legacy/flow.json` is the s
   toast "Sending: email", box cleared after 0.5 s; Cloud Status.
 - Cloud Settings: Cloud URL box (default URL shown when "Use Default" on, else this color's custom
   URLs or "Not set for COLOR"; entering text sets this color's custom URLs, toast lists them);
+  *Port change (requested):* with "Use Default" off, the selected Tilt's custom URLs are shown one
+  per line ("Cloud URL 1", "Cloud URL 2"…) plus an empty "Add Cloud URL n" line; Enter adds the URL
+  and puts the cursor on a new empty line, clearing a line removes it, and commas typed in a line
+  still split it. Stored as the legacy comma-separated string (spaces/empty entries tidied).
   Use Default Cloud URL for All; Logging Template (v2=`B2` default / classic=`B1`); Start Logging to
   the Cloud (toast); Time Interval slider 5–60 step 5 + "Minutes: N"; Comment box (sets the comment
   sent with the next post; cleared after 0.5 s).

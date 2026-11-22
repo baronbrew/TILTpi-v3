@@ -349,8 +349,11 @@ export class TiltPiApp extends EventEmitter {
     },
     setCloudURL({ color, value }) {
       if (!color) return;
-      this.settings.setTilt(color, { cloudURLs: String(value) });
-      this.toast({ topic: 'Custom cloud URL set for ' + color, message: String(value).replace(/,/g, '<br>'), displayTime: 5 });
+      // One or more URLs, comma-separated (legacy format); tidy spaces and empty entries.
+      const urls = String(value ?? '').split(',').map((u) => u.trim()).filter(Boolean).join(',');
+      this.settings.setTilt(color, { cloudURLs: urls });
+      if (!urls) return this.toast({ topic: 'Custom cloud URLs cleared for ' + color, message: '' });
+      this.toast({ topic: 'Custom cloud URL set for ' + color, message: urls.replace(/,/g, '<br>'), displayTime: 5 });
     },
     setLoggingTemplate({ value }) {
       this.#setUi({ loggingTemplate: value === 'B1' ? 'B1' : 'B2' });

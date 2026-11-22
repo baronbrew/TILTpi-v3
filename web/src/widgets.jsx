@@ -81,7 +81,7 @@ export function Switch({ label, checked, onChange }) {
 }
 
 /** Text box that sends on Enter or when it loses focus (legacy ui_text_input with delay 0). */
-export function TextInput({ label, value, onCommit, clearAfterMs }) {
+export function TextInput({ label, value, onCommit, clearAfterMs, autoFocus = false }) {
   const [draft, setDraft] = useState(null); // null = not editing, show server value
   const shown = draft ?? (value ?? '');
   const commit = () => {
@@ -96,14 +96,13 @@ export function TextInput({ label, value, onCommit, clearAfterMs }) {
         <span className="w-input-label">{label}</span>
         <input
           value={shown}
+          autoFocus={autoFocus}
           onFocus={() => setDraft(String(value ?? ''))}
           onChange={(e) => setDraft(e.target.value)}
           onBlur={commit}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              commit();
-              e.currentTarget.blur();
-            }
+            // Leaving the box commits (onBlur). Committing here too sent every value twice.
+            if (e.key === 'Enter') e.currentTarget.blur();
           }}
         />
       </label>

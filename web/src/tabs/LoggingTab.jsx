@@ -36,6 +36,44 @@ function CloudStatus({ state, color }) {
   );
 }
 
+/** Comma-separated cloud URLs (legacy storage) → list; commas typed in a line also split it. */
+const splitUrls = (text) => String(text ?? '').split(',').map((u) => u.trim()).filter(Boolean);
+
+/**
+ * Custom cloud URLs for one Tilt, one per line, plus an empty line to add another. Enter adds the
+ * URL and moves to a new empty line; clearing a line removes that URL. Still saved as the legacy
+ * comma-separated string (so "a,b" typed in one line works too).
+ */
+function CloudUrlList({ color, value, send }) {
+  const urls = splitUrls(value);
+  const [focusNew, setFocusNew] = useState(false);
+  const save = (list) => send('setCloudURL', { color, value: list.join(',') });
+  const edit = (i) => (text) => {
+    const next = [...urls];
+    next.splice(i, 1, ...splitUrls(text)); // empty → removes the line
+    save(next);
+  };
+  return (
+    <>
+      {urls.map((url, i) => (
+        <TextInput key={i + ':' + url} label={`Cloud URL ${i + 1}`} value={url} onCommit={edit(i)} />
+      ))}
+      <TextInput
+        key={'new:' + urls.length}
+        label={urls.length ? `Add Cloud URL ${urls.length + 1}` : 'Cloud URL'}
+        value=""
+        autoFocus={focusNew}
+        onCommit={(text) => {
+          const added = splitUrls(text);
+          if (!added.length) return;
+          setFocusNew(true); // next empty line gets the cursor
+          save([...urls, ...added]);
+        }}
+      />
+    </>
+  );
+}
+
 export default function LoggingTab({ state, send, color, setColor }) {
   const g = state.settings;
   const tilt = (color && state.tilts[color]) || {};
@@ -55,7 +93,11 @@ export default function LoggingTab({ state, send, color, setColor }) {
       </Group>
 
       <Group title="Cloud Settings" key="cloud">
-        <TextInput label="Cloud URL" value={cloudURLText} onCommit={(v) => send('setCloudURL', { color, value: v })} />
+        {g.useDefaultCloudURL || !color ? (
+          <TextInput label="Cloud URL" value={cloudURLText} onCommit={(v) => send('setCloudURL', { color, value: v })} />
+        ) : (
+          <CloudUrlList key={color} color={color} value={tilt.cloudURLs} send={send} />
+        )}
         <Switch label="Use Default Cloud URL for All" checked={g.useDefaultCloudURL}
           onChange={(v) => send('setUseDefaultCloudURL', { value: v })} />
         <Dropdown label="Logging Template" placeholder="v2 (default)"
