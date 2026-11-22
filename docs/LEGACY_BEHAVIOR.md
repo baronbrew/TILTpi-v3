@@ -135,7 +135,10 @@ differences — everything else should be identical. `legacy/flow.json` is the s
 
 ## 11. First boot / provisioning (files on the boot partition, from `legacy/SETUP/SETUP.html`)
 - `wpa_supplicant.conf`: ssid/psk lines → `raspi-config nonint do_wifi_ssid_passphrase`; file
-  removed on success. *Port addition:* its `country=XX` line (SETUP.html always writes `GB`) is
+  removed on success. *Port change:* on Trixie that raspi-config call is `nmcli device wifi connect`,
+  which fails if NetworkManager hasn't started/scanned yet right after boot, and legacy never
+  retried. The port instead saves a NetworkManager profile `tiltpi-<ssid>` (autoconnect, retried
+  for ~2 min while NM starts), deletes the file, then tries `nmcli connection up`. *Port addition:* its `country=XX` line (SETUP.html always writes `GB`) is
   applied with `do_wifi_country` only when the Pi has no WiFi country yet; Trixie keeps WiFi
   blocked until one is set. The images ship SETUP.html, logo.png and `mdl/` on the boot partition.
 - `cloud_log_<color>.json` (`{"Color","Comment"(email),"Beer":[name,true]}`): processed once the
