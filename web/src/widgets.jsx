@@ -155,20 +155,55 @@ export function Slider({ label, min, max, step, value, onInput, onCommit }) {
 }
 
 /** Up/down numeric (legacy ui_numeric). */
+/**
+ * Legacy ui_numeric: up/down buttons, and the value can be typed (Enter or leaving the box
+ * applies it, Esc cancels; clamped to min/max; arrow keys step while focused).
+ */
 export function Numeric({ label, value, min, max, step, onChange, digits }) {
+  const [draft, setDraft] = useState(null); // text being typed; null = not editing
   const clamp = (v) => Math.min(max, Math.max(min, v));
   const decimals = digits ?? (String(step).split('.')[1]?.length ?? 0);
-  const bump = (dir) => {
-    const v = clamp(Number((Number(value ?? min) + dir * step).toFixed(decimals)));
-    onChange(v);
+  const round = (v) => Number(clamp(v).toFixed(decimals));
+  const bump = (dir) => onChange(round(Number(value ?? min) + dir * step));
+  const empty = value === undefined || value === null || value === '';
+  const shown = empty ? '' : Number(value).toFixed(decimals);
+  const commit = () => {
+    if (draft === null) return;
+    const v = Number(String(draft).trim().replace(',', '.')); // accept "1,050" decimal commas
+    setDraft(null);
+    if (String(draft).trim() !== '' && Number.isFinite(v) && round(v) !== Number(value)) onChange(round(v));
   };
-  const shown = value === undefined || value === null || value === '' ? '' : Number(value);
   return (
     <div className="w w-row w-numeric">
       <span className="w-label">{label}</span>
       <span className="numeric-ctl">
         <button type="button" aria-label="decrease" onClick={() => bump(-1)}><Icon name="expandMore" /></button>
-        <span className="numeric-value">{shown}</span>
+        <input
+          className="numeric-value"
+          type="text"
+          inputMode="decimal"
+          aria-label={label}
+          value={draft ?? shown}
+          onFocus={(e) => {
+            setDraft(shown);
+            e.target.select();
+          }}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') e.currentTarget.blur();
+            else if (e.key === 'Escape') {
+              setDraft(null);
+              setTimeout(() => e.target.blur());
+            } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+              e.preventDefault();
+              const base = Number(String(draft ?? shown).replace(',', '.'));
+              const v = round((Number.isFinite(base) ? base : Number(value ?? min)) + (e.key === 'ArrowUp' ? step : -step));
+              setDraft(v.toFixed(decimals));
+              onChange(v);
+            }
+          }}
+        />
         <button type="button" aria-label="increase" onClick={() => bump(1)}><Icon name="expandLess" /></button>
       </span>
     </div>

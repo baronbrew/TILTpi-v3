@@ -129,7 +129,13 @@ a { color: white; text-decoration: none; }
 /* numeric */
 .numeric-ctl { display: flex; align-items: center; gap: 6px; flex: none; }
 .numeric-ctl button { background: none; border: 0; color: var(--text); cursor: pointer; padding: 2px; display: flex; }
-.numeric-value { min-width: 54px; text-align: center; font-weight: bold; font-size: 14px; }
+.numeric-value {
+  width: 72px; text-align: center; font-weight: bold; font-size: 14px; font-family: inherit;
+  color: var(--text); background: transparent; border: 0; border-bottom: 1px solid transparent;
+  padding: 2px 0; outline: none;
+}
+.numeric-value:hover { border-bottom-color: #666; }
+.numeric-value:focus { border-bottom-color: #ddd; } /* like the text inputs */
 
 /* text */
 .w-text { display: flex; padding: 6px 12px; }
