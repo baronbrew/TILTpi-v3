@@ -68,12 +68,15 @@ export class Settings extends EventEmitter {
   #migrateTempPoints() {
     if (this.global.tempPointsUnit === '°F') return false;
     if (this.global.displayUnits === '°C') {
+      let converted = 0;
       for (const t of Object.values(this.tilts)) {
         for (const k of ['uncalTempPoints', 'actualTempPoints']) {
-          if (t[k] !== undefined) t[k] = toPointArray(t[k]).map(cToFPoint);
+          if (t[k] === undefined) continue;
+          t[k] = toPointArray(t[k]).map(cToFPoint);
+          converted += t[k].length;
         }
       }
-      console.log('[settings] converted °C temperature calibration points to °F');
+      if (converted) console.log(`[settings] converted ${converted / 2} °C temperature calibration point(s) to °F`);
     }
     this.global.tempPointsUnit = '°F';
     return true;
