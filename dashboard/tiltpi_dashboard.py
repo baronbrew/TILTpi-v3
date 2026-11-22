@@ -173,6 +173,23 @@ class Fetcher(threading.Thread):
 # --------------------------------------------------------------------------- #
 # A thin colored progress bar (the template's 10px-high div)
 # --------------------------------------------------------------------------- #
+class ValueWithUnit(tk.Frame):
+    """Big reading with a smaller unit after it (e.g. "65.0" + "°F"), sharing one baseline."""
+
+    def __init__(self, parent, value_font, unit_font):
+        super().__init__(parent, bg=CARD_BG)
+        self.value = tk.Label(self, font=value_font, bg=CARD_BG, fg=CARD_TEXT, padx=0, pady=0, bd=0)
+        self.unit = tk.Label(self, font=unit_font, bg=CARD_BG, fg=CARD_TEXT, padx=0, pady=0, bd=0)
+        self.value.pack(side="left", anchor="s")
+        # Bottom-aligned labels: lift the unit by the difference in descent so baselines match.
+        lift = max(0, value_font.metrics("descent") - unit_font.metrics("descent"))
+        self.unit.pack(side="left", anchor="s", pady=(0, lift))
+
+    def set(self, value, unit):
+        self.value.config(text=value)
+        self.unit.config(text=unit)
+
+
 class Bar(tk.Canvas):
     def __init__(self, master, height=10):
         super().__init__(master, height=height, bg=CARD_BG,
@@ -209,6 +226,8 @@ class TiltCard(tk.Frame):
         self.f_h1 = tkfont.Font(family=FONT, size=style["h1"])
         self.f_h1b = tkfont.Font(family=FONT, size=style["h1"], weight="bold")
         self.f_big = tkfont.Font(family=FONT, size=style["big"], weight="bold")
+        # Unit (°F, °C, °P...) a little smaller than the number, like the web dashboard.
+        self.f_unit = tkfont.Font(family=FONT, size=round(style["big"] * 0.65), weight="bold")
         self.f_h5 = tkfont.Font(family=MONO, size=style["h5"])
 
         pad = style["pad"]
@@ -253,7 +272,7 @@ class TiltCard(tk.Frame):
         f.columnconfigure(0, weight=1)
         pre = tk.Label(f, font=self.f_h1, bg=CARD_BG, fg=CARD_TEXT, anchor="w")
         pre.grid(row=0, column=0, sticky="ew", padx=lpad)
-        big = tk.Label(f, font=self.f_big, bg=CARD_BG, fg=CARD_TEXT, anchor="w")
+        big = ValueWithUnit(f, self.f_big, self.f_unit)
         big.grid(row=1, column=0, sticky="ew", padx=lpad)
         bar = Bar(f)
         bar.grid(row=2, column=0, sticky="ew", pady=(3, 0))
@@ -277,7 +296,7 @@ class TiltCard(tk.Frame):
         gname = GRAVITY_NAMES.get(units, "Specific Gravity")
         self.sg_pre.config(text=(f"pre-cal {uncalferm}" if compact
                                  else f"{gname}: {uncalferm} (pre-calibrated)"))
-        self.sg.config(text=f"{no_neg_zero(d.get('ferm', d.get('SG', '--')))}{units}")
+        self.sg.set(no_neg_zero(d.get('ferm', d.get('SG', '--'))), units)
         self.sg_bar.set(bar_fraction(to_float(d.get("SG")), SG_MIN, SG_MAX), swatch)
 
         # Temperature: displayTemp calibrated, displayuncalTemp raw.
@@ -285,7 +304,7 @@ class TiltCard(tk.Frame):
         uncaltemp = no_neg_zero(d.get("displayuncalTemp", "--"))
         self.temp_pre.config(text=(f"pre-cal {uncaltemp}{tunits}" if compact
                                    else f"Temperature: {uncaltemp} (pre-calibrated)"))
-        self.temp.config(text=f"{no_neg_zero(d.get('displayTemp', d.get('Temp', '--')))}{tunits}")
+        self.temp.set(no_neg_zero(d.get('displayTemp', d.get('Temp', '--'))), tunits)
         self.temp_bar.set(bar_fraction(to_float(d.get("Temp")), TEMP_MIN, TEMP_MAX), swatch)
 
         # Footer: formatted date, then freshness + signal.

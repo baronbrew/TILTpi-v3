@@ -169,6 +169,7 @@ a { color: white; text-decoration: none; }
 .tilt-card h1 { font-size: .875em; font-weight: normal; margin: 4px 0 6px; }
 .tilt-card h1 strong { font-weight: bold; }
 .tilt-card h2 { font-size: 3.5em; text-indent: .5em; margin: 0; line-height: 1.15; font-weight: bold; }
+.tilt-card h2 .unit { font-size: .65em; margin-left: .05em; } /* °F/°C/°P a little smaller than the number */
 .tilt-card h5 {
   font-family: "Courier New", Courier, monospace; text-align: center; font-size: .6em; margin: .2em 0 0;
 }

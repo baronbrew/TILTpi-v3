@@ -27,13 +27,13 @@ function TiltCard({ r, now }) {
       <h1>{GRAVITY_NAME[r.fermunits ?? ''] ?? 'Specific Gravity'}: {noNegZero(r.uncalferm)} (pre-calibrated)</h1>
       <h2>
         {noNegZero(r.ferm)}
-        {r.fermunits}
+        <span className="unit">{r.fermunits}</span>
       </h2>
       <div style={{ background: color, height: 10, width: `${(r.SG - 0.99) / 0.0013}%` }} />
       <h1>Temperature: {num1(r.displayuncalTemp)} (pre-calibrated)</h1>
       <h2>
         {num1(r.displayTemp)}
-        {r.tempunits}
+        <span className="unit">{r.tempunits}</span>
       </h2>
       <div style={{ background: color, height: 10, width: `${(r.Temp - 30) / 1.85}%` }} />
       <h5>{r.formatteddate}</h5>
