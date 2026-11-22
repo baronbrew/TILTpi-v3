@@ -1,10 +1,11 @@
 // "Tilt Pi" tab: one card per display slot (legacy ui_template "1".."25").
 import { Masonry } from '../widgets.jsx';
+import { noNegZero } from '../format.js';
 
 const cssColor = (c) => (c === 'PINK' ? 'DEEPPINK' : c);
 const num1 = (v) => {
   const n = Number(v);
-  return Number.isFinite(n) ? n.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '';
+  return Number.isFinite(n) ? noNegZero(n.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })) : '';
 };
 
 function TiltCard({ r, now }) {
@@ -22,9 +23,9 @@ function TiltCard({ r, now }) {
         )}
       </h1>
       <div style={{ background: color, height: 40, width: '100%' }} />
-      <h1>SG/Concentration: {r.uncalferm} (pre-calibrated)</h1>
+      <h1>SG/Concentration: {noNegZero(r.uncalferm)} (pre-calibrated)</h1>
       <h2>
-        {r.ferm}
+        {noNegZero(r.ferm)}
         {r.fermunits}
       </h2>
       <div style={{ background: color, height: 10, width: `${(r.SG - 0.99) / 0.0013}%` }} />

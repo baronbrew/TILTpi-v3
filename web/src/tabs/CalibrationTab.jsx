@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Masonry, Group, Button, Numeric, Switch } from '../widgets.jsx';
 import { TiltSelect } from './LoggingTab.jsx';
 import { gravityUnit, tempPointShow } from '../units.js';
+import { fixed } from '../format.js';
 
 function PointsTable({ title, uncal, actual, onDelete, show = (v) => v }) {
   return (
@@ -50,8 +51,8 @@ function CalibrationGroup({ kind, state, color, send }) {
       setUncal(unit.show(reading.uncalSG));
       setActual(unit.show(reading.SG));
     } else {
-      setUncal(Number(reading.displayuncalTemp).toFixed(1));
-      setActual(Number(reading.displayTemp).toFixed(1));
+      setUncal(fixed(reading.displayuncalTemp, 1));
+      setActual(fixed(reading.displayTemp, 1));
     }
   }, [auto, reading, isSG, unit.name]); // eslint-disable-line react-hooks/exhaustive-deps
 

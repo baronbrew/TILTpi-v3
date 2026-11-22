@@ -2,6 +2,7 @@
 // 53 px rows, dark theme). Keep visual details in styles.css.
 import { Children, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Icon } from './icons.jsx';
+import { fixed } from './format.js';
 
 export const GROUP_WIDTH = 320; // 6 × 48 px units + gaps + border
 const GAP = 4;
@@ -163,10 +164,10 @@ export function Numeric({ label, value, min, max, step, onChange, digits }) {
   const [draft, setDraft] = useState(null); // text being typed; null = not editing
   const clamp = (v) => Math.min(max, Math.max(min, v));
   const decimals = digits ?? (String(step).split('.')[1]?.length ?? 0);
-  const round = (v) => Number(clamp(v).toFixed(decimals));
+  const round = (v) => Number(clamp(v).toFixed(decimals)) || 0; // || 0: no -0
   const bump = (dir) => onChange(round(Number(value ?? min) + dir * step));
   const empty = value === undefined || value === null || value === '';
-  const shown = empty ? '' : Number(value).toFixed(decimals);
+  const shown = empty ? '' : fixed(value, decimals);
   const commit = () => {
     if (draft === null) return;
     const v = Number(String(draft).trim().replace(',', '.')); // accept "1,050" decimal commas
@@ -199,7 +200,7 @@ export function Numeric({ label, value, min, max, step, onChange, digits }) {
               e.preventDefault();
               const base = Number(String(draft ?? shown).replace(',', '.'));
               const v = round((Number.isFinite(base) ? base : Number(value ?? min)) + (e.key === 'ArrowUp' ? step : -step));
-              setDraft(v.toFixed(decimals));
+              setDraft(fixed(v, decimals));
               onChange(v);
             }
           }}

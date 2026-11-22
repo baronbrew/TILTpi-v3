@@ -1,6 +1,7 @@
 // Units for the calibration screen. Gravity points are stored in SG and temperature points in °F,
 // so switching units never invalidates them; the screen shows and accepts the selected unit.
 // SG -> Plato/Brix are the same formulas the server uses (server/src/tilt/calibration.js).
+import { fixed } from './format.js';
 
 export const sgToPlato = (sg) => 1111.14 * sg - 630.272 * sg * sg + 135.997 * sg * sg * sg - 616.868;
 export const sgToBrix = (sg) => ((182.4601 * sg - 775.6821) * sg + 1262.7794) * sg - 669.5622;
@@ -29,7 +30,7 @@ export function gravityUnit(fermdisplayUnits) {
   return {
     ...u,
     /** SG (number or string) -> value in this unit, as a fixed-decimals string. */
-    show: (sg) => (sg === undefined || sg === null || sg === '' ? '' : u.fromSG(Number(sg)).toFixed(u.decimals)),
+    show: (sg) => (sg === undefined || sg === null || sg === '' ? '' : fixed(u.fromSG(Number(sg)), u.decimals)),
     /** Value in this unit -> SG string with 4 decimals (how points are stored). */
     sg: (v) => u.toSG(Number(v)).toFixed(4),
     /** SG range -> {min, max} in this unit. */
@@ -45,5 +46,5 @@ export function gravityUnit(fermdisplayUnits) {
 export function tempPointShow(f, displayUnits) {
   if (f === undefined || f === null || f === '') return '';
   const v = displayUnits === '°C' ? (Number(f) - 32) / 1.8 : Number(f);
-  return v.toFixed(1);
+  return fixed(v, 1);
 }
