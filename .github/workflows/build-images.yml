@@ -27,6 +27,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 350
     steps:
+      - name: Free disk space (pi-gen needs ~15 GB)
+        run: |
+          df -h /
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup \
+            /opt/hostedtoolcache/CodeQL /usr/local/share/boost /usr/share/swift \
+            /usr/local/share/powershell /usr/local/share/chromium /usr/lib/jvm || true
+          sudo docker image prune --all --force || true
+          df -h /
+
       - uses: actions/checkout@v4
 
       - name: Put this checkout into the image stage
@@ -51,7 +60,9 @@ jobs:
           wpa-country: US
           compression: xz
           compression-level: 6
-          increase-runner-disk-size: true
+          # The action's own cleanup purges a fixed package list that breaks when the runner
+          # image changes; we free space in the step above instead.
+          increase-runner-disk-size: false
           verbose-output: true
 
       - uses: actions/upload-artifact@v4
