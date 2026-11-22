@@ -73,6 +73,19 @@ export async function importWifi(bootDir, { attempts = 12, retryMs = 10000 } = {
   return false;
 }
 
+/** Time zone from a cloud_log_<color>.json (SETUP.html adds the browser's), without consuming it. */
+export function peekCloudLogTimezone(bootDir) {
+  for (const color of COLORS.map((c) => c.toLowerCase())) {
+    try {
+      const tz = JSON.parse(fs.readFileSync(path.join(bootDir, `cloud_log_${color}.json`), 'utf8')).Timezone;
+      if (typeof tz === 'string' && tz) return tz;
+    } catch {
+      // missing or unreadable: try the next color
+    }
+  }
+  return undefined;
+}
+
 /** Reads and deletes every cloud_log_<color>.json present. Returns their parsed contents. */
 export async function takeCloudLogFiles(bootDir) {
   const found = [];

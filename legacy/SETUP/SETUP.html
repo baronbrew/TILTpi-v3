@@ -170,7 +170,17 @@ document.getElementById("dwn-btn").addEventListener("click", function(){
     document.getElementById("dwn-cloud-btn").addEventListener("click", function(){
     // Generate download of cloud_log_color.json
     var color = document.querySelector('input[name = "color"]:checked').value;
-    var text2 = '{"Color":"' + color.toUpperCase() + '","Comment":"' + document.getElementById("email").value + '",' + '"Beer":["' + document.getElementById("Beer").value + '",true]}';
+    // Timezone/Locale come from this browser so the Tilt Pi can use the user's local time.
+    var timezone = '', locale = '';
+    try { timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) {}
+    try { locale = navigator.language || (navigator.languages && navigator.languages[0]) || ''; } catch (e) {}
+    var text2 = JSON.stringify({
+        Color: color.toUpperCase(),
+        Comment: document.getElementById("email").value,
+        Beer: [document.getElementById("Beer").value, true],
+        Timezone: timezone,
+        Locale: locale
+    });
     var filename2 = "cloud_log_" + color + ".json";
     download(filename2, text2);
     }, false);

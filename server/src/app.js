@@ -15,7 +15,7 @@ import { LegacyBackup } from './logging/legacyBackup.js';
 import { RangeBooster, MAX_RANGERS } from './rangeBoost.js';
 import { UsbExporter } from './system/usb.js';
 import * as sys from './system/system.js';
-import { importWifi, takeCloudLogFiles } from './system/provisioning.js';
+import { importWifi, takeCloudLogFiles, peekCloudLogTimezone } from './system/provisioning.js';
 import { MdnsWatchdog, CHECK_MS as MDNS_CHECK_MS } from './system/mdns.js';
 import { currentVersion, checkLatestRelease, startUpdate } from './system/updater.js';
 
@@ -99,6 +99,7 @@ export class TiltPiApp extends EventEmitter {
     this.rangeBoost.start();
     this.usb.start().catch((e) => console.warn('[usb]', e.message));
     importWifi(this.config.bootDir).catch((e) => console.warn('[wifi]', e.message));
+    await this.#applyTimezone(peekCloudLogTimezone(this.config.bootDir));
 
     this.#every(1000, () => this.tick());
     this.#every(60000, () => this.refreshSystemTime(), true);
@@ -166,11 +167,27 @@ export class TiltPiApp extends EventEmitter {
     this.emit('state');
   }
 
+  /**
+   * SETUP.html puts the browser's time zone in cloud_log_<color>.json. Applied at startup (before
+   * any reading is timestamped) and to this process too, so the first log entries are already in
+   * local time without a restart.
+   */
+  async #applyTimezone(tz) {
+    if (typeof tz !== 'string' || !tz || tz === sys.currentTimezone()) return;
+    const r = await sys.setTimezone(tz);
+    if (r.code !== 0) return console.warn(`[provisioning] could not set time zone "${tz}":`, r.stderr);
+    process.env.TZ = tz;
+    console.log(`[provisioning] time zone set to ${tz}`);
+    this.refreshSystemTime();
+  }
+
   /** cloud_log_<color>.json from SETUP.html ("Set Up Tilt Pi" + "Send IP Addr"). */
   async #provisionCloudLogging() {
     for (const file of await takeCloudLogFiles(this.config.bootDir)) {
       const color = file.Color;
       if (typeof color !== 'string') continue;
+      await this.#applyTimezone(file.Timezone); // normally already done at startup
+      if (file.Locale) console.log(`[provisioning] browser locale: ${file.Locale}`);
       this.settings.setGlobal({
         useDefaultCloudURL: true,
         logCloudDataCheck: true,

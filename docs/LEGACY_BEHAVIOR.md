@@ -154,6 +154,10 @@ differences — everything else should be identical. `legacy/flow.json` is the s
   first Tilt is displayed after boot: default cloud URL, comment = email, cloud+local logging on,
   15 min intervals, beer name, post now, log reset; after 60 s comment = dashboard IP link and post
   again. File removed.
+  *Port addition:* SETUP.html now builds this file with `JSON.stringify` (quotes in names no longer
+  break it) and adds the browser's `Timezone` (IANA name) and `Locale`. At startup, before Bluetooth
+  scanning begins, the app applies `Timezone` with `timedatectl` and to its own process, so the
+  first log entries are already local time. `Locale` is only logged for now.
 
 ## 12. Persistence
 - Legacy settings lived in Node-RED memory and were only saved through §3.5 (so changes made with
