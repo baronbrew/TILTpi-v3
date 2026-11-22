@@ -1,0 +1,196 @@
+// Widget kit that reproduces the legacy node-red-dashboard look (6-unit wide groups,
+// 53 px rows, dark theme). Keep visual details in styles.css.
+import { Children, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Icon } from './icons.jsx';
+
+export const GROUP_WIDTH = 320; // 6 × 48 px units + gaps + border
+const GAP = 4;
+const COLUMN = GROUP_WIDTH + GAP;
+
+/** Places groups left→right into the currently shortest column (dashboard "masonry" layout). */
+export function Masonry({ children }) {
+  const ref = useRef(null);
+  const [layout, setLayout] = useState({ pos: [], width: GROUP_WIDTH, height: 0 });
+  const items = Children.toArray(children).filter(Boolean);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const compute = () => {
+      const avail = el.parentElement.clientWidth - 12;
+      const cols = Math.max(1, Math.floor((avail + GAP) / COLUMN));
+      const heights = new Array(cols).fill(0);
+      const pos = [...el.children].map((child) => {
+        const c = heights.indexOf(Math.min(...heights));
+        const p = { left: c * COLUMN, top: heights[c] };
+        heights[c] += child.offsetHeight + GAP;
+        return p;
+      });
+      const next = { pos, width: cols * COLUMN - GAP, height: Math.max(...heights) };
+      setLayout((prev) => (JSON.stringify(prev) === JSON.stringify(next) ? prev : next));
+    };
+    compute();
+    const ro = new ResizeObserver(compute);
+    ro.observe(el.parentElement);
+    for (const c of el.children) ro.observe(c);
+    return () => ro.disconnect();
+  }, [items.length]);
+
+  return (
+    <div className="masonry" ref={ref} style={{ width: layout.width, height: layout.height }}>
+      {items.map((child, i) => (
+        <div key={child.key ?? i} className="masonry-item" style={layout.pos[i] ?? { visibility: 'hidden' }}>
+          {child}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function Group({ title, children, className = '' }) {
+  return (
+    <section className={'group ' + className}>
+      {title && <h3 className="group-title">{title}</h3>}
+      <div className="group-body">{children}</div>
+    </section>
+  );
+}
+
+export function Button({ label, onClick, icon, danger = false, style }) {
+  return (
+    <button type="button" className={'w w-button' + (danger ? ' danger' : '')} onClick={onClick} style={style}>
+      {icon && <Icon name={icon} size={18} />}
+      <span>{label}</span>
+    </button>
+  );
+}
+
+export function Switch({ label, checked, onChange }) {
+  return (
+    <div className="w w-row w-switch" role="switch" aria-checked={!!checked} tabIndex={0}
+      onClick={() => onChange(!checked)}
+      onKeyDown={(e) => (e.key === ' ' || e.key === 'Enter') && onChange(!checked)}>
+      <span className="w-label">{label}</span>
+      <span className={'switch' + (checked ? ' on' : '')}>
+        <span className="switch-bar" />
+        <span className="switch-thumb" />
+      </span>
+    </div>
+  );
+}
+
+/** Text box that sends on Enter or when it loses focus (legacy ui_text_input with delay 0). */
+export function TextInput({ label, value, onCommit, clearAfterMs }) {
+  const [draft, setDraft] = useState(null); // null = not editing, show server value
+  const shown = draft ?? (value ?? '');
+  const commit = () => {
+    if (draft === null) return;
+    const v = draft;
+    setDraft(null);
+    if (v !== (value ?? '')) onCommit(v);
+  };
+  return (
+    <div className={'w w-input' + (String(shown) !== '' ? ' has-value' : '')}>
+      <label>
+        <span className="w-input-label">{label}</span>
+        <input
+          value={shown}
+          onFocus={() => setDraft(String(value ?? ''))}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              commit();
+              e.currentTarget.blur();
+            }
+          }}
+        />
+      </label>
+    </div>
+  );
+}
+
+export function Dropdown({ label, placeholder, options, value, onChange }) {
+  const has = options.some((o) => String(o.value) === String(value));
+  return (
+    <div className="w w-row w-dropdown">
+      {label && <span className="w-label">{label}</span>}
+      <div className="select-wrap">
+        <select value={has ? String(value) : ''} onChange={(e) => onChange(options.find((o) => String(o.value) === e.target.value)?.value)}>
+          {!has && <option value="" disabled>{placeholder}</option>}
+          {options.map((o) => (
+            <option key={String(o.value)} value={String(o.value)}>{o.label}</option>
+          ))}
+        </select>
+        <Icon name="dropDown" size={20} className="select-caret" />
+      </div>
+    </div>
+  );
+}
+
+/** Range slider; `onCommit` fires on release, `onInput` while dragging. */
+export function Slider({ label, min, max, step, value, onInput, onCommit }) {
+  const [drag, setDrag] = useState(null);
+  const shown = drag ?? value ?? min;
+  const end = () => {
+    if (drag !== null) onCommit?.(drag);
+    setDrag(null);
+  };
+  const pct = ((Number(shown) - min) / (max - min)) * 100;
+  return (
+    <div className="w w-row w-slider">
+      <span className="w-label">{label}</span>
+      <input
+        type="range" min={min} max={max} step={step} value={shown}
+        style={{ '--pct': pct + '%' }}
+        onChange={(e) => {
+          const v = Number(e.target.value);
+          setDrag(v);
+          onInput?.(v);
+        }}
+        onPointerUp={end} onKeyUp={end} onBlur={end}
+      />
+    </div>
+  );
+}
+
+/** Up/down numeric (legacy ui_numeric). */
+export function Numeric({ label, value, min, max, step, onChange, digits }) {
+  const clamp = (v) => Math.min(max, Math.max(min, v));
+  const decimals = digits ?? (String(step).split('.')[1]?.length ?? 0);
+  const bump = (dir) => {
+    const v = clamp(Number((Number(value ?? min) + dir * step).toFixed(decimals)));
+    onChange(v);
+  };
+  const shown = value === undefined || value === null || value === '' ? '' : Number(value);
+  return (
+    <div className="w w-row w-numeric">
+      <span className="w-label">{label}</span>
+      <span className="numeric-ctl">
+        <button type="button" aria-label="decrease" onClick={() => bump(-1)}><Icon name="expandMore" /></button>
+        <span className="numeric-value">{shown}</span>
+        <button type="button" aria-label="increase" onClick={() => bump(1)}><Icon name="expandLess" /></button>
+      </span>
+    </div>
+  );
+}
+
+/** Read-only text (legacy ui_text layouts: row-left, row-spread, col-center). */
+export function Text({ label, value, layout = 'row-left', html = false }) {
+  const v = html ? <span className="w-value" dangerouslySetInnerHTML={{ __html: value ?? '' }} /> : <span className="w-value">{value}</span>;
+  return (
+    <div className={'w w-text ' + layout}>
+      {label && <span className="w-label">{label}</span>}
+      {v}
+    </div>
+  );
+}
+
+export function useInterval(fn, ms) {
+  const saved = useRef(fn);
+  saved.current = fn;
+  useEffect(() => {
+    const t = setInterval(() => saved.current(), ms);
+    return () => clearInterval(t);
+  }, [ms]);
+}

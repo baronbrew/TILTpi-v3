@@ -1,0 +1,5 @@
+node_modules/
+.devdata/
+*.log
+.DS_Store
+# web/dist is committed on purpose: Pis update with git pull and must not need to build React.

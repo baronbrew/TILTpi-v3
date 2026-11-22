@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checking Tilt Pi Server Status...</title>
+    
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+        
+        .status-message {
+            margin-top: 20px;
+            font-size: 1.2em;
+            color: #333;
+        }
+        
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        
+        .full-screen-image {
+            max-width: 90%;
+            max-height: 70vh;
+            display: block;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    
+    <img 
+        src="logo.png"
+        alt="Display Image" 
+        class="full-screen-image"
+    >
+    
+    <p id="status" class="status-message">Checking Tilt Pi server status... (Attempt 0 of 60)</p>
+
+    <script>
+        const REDIRECT_URL = "http://localhost:1880/ui";
+        const MAX_ATTEMPTS = 60; // 60 seconds
+        let currentAttempt = 0;
+        let intervalId;
+        
+        const statusElement = document.getElementById('status');
+        
+        // Function to check the URL status
+        async function checkServiceStatus() {
+            currentAttempt++;
+            
+            // Update the display message
+            statusElement.textContent = `Checking Tilt Pi server status... (Attempt ${currentAttempt} of ${MAX_ATTEMPTS})`;
+
+            try {
+                // We use 'fetch' with 'mode: "no-cors"' to try and bypass CORS restrictions
+                // for local network checks, though success is not guaranteed and depends
+                // on the browser's security model and the server's configuration.
+                // NOTE: A successful 'fetch' with 'no-cors' only confirms the network request
+                // was made, not necessarily a status code 200/OK, but in a controlled local 
+                // environment, this is often the most practical approach.
+                const response = await fetch(REDIRECT_URL, { 
+                    method: 'GET',
+                    mode: 'no-cors' // Crucial for attempts to bypass CORS on local/non-secure endpoints
+                });
+
+                // Since we are using 'no-cors', we cannot reliably check response.ok or response.status.
+                // The 'no-cors' mode results in an 'opaque' response. For a local Node-RED setup, 
+                // simply getting a response object (not hitting the catch block) and seeing the 
+                // fetch succeed is often enough to indicate the server is up and listening.
+                
+                // If the fetch call *completes* without throwing a network error:
+                console.log("Server OK detected, redirecting.");
+                clearInterval(intervalId); // Stop the checking
+                statusElement.textContent = "Server OK! Redirecting now...";
+                window.location.replace(REDIRECT_URL); // Redirect to the target URL
+                return; // Exit the function
+                
+            } catch (error) {
+                // This block executes if there's a network error (e.g., DNS error, server unreachable)
+                console.log(`Attempt ${currentAttempt} failed:`, error.message);
+            }
+            
+            // Check if max attempts reached
+            if (currentAttempt >= MAX_ATTEMPTS) {
+                clearInterval(intervalId); // Stop the checking
+                statusElement.classList.add('error');
+                statusElement.innerHTML = `⚠️ **Error:** Service at ${REDIRECT_URL} is unreachable after ${MAX_ATTEMPTS} seconds.`;
+            }
+        }
+
+        // Set the interval to check every 1000 milliseconds (1 second)
+        // Start the check immediately, then repeat every second
+        intervalId = setInterval(checkServiceStatus, 1000);
+        checkServiceStatus(); 
+    </script>
+</body>
+</html>
+
