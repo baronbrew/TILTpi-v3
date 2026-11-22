@@ -1,4 +1,4 @@
-/* Recreates the legacy node-red-dashboard "theme-custom" dark theme used by Tilt Pi. */
+﻿/* Recreates the legacy node-red-dashboard "theme-custom" dark theme used by Tilt Pi. */
 :root {
   --page-bg: #111111;
   --toolbar-bg: #666666;
@@ -141,7 +141,7 @@ a { color: white; text-decoration: none; }
 
 /* template blocks */
 .w-template { padding: 0 6px; }
-.cloud-status a, .tilt-card a { color: white; }
+.cloud-status a, .tilt-card a { color: white; text-decoration: none; }
 .cal-table h4 { margin: 8px 0 4px; font-size: 16px; }
 .cal-table table { width: 100%; border-collapse: collapse; }
 .cal-table th, .cal-table td { text-align: center; padding: 3px 0; }

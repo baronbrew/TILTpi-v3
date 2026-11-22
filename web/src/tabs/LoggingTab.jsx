@@ -1,12 +1,7 @@
 // "Logging" tab: Quick Start, Cloud Settings, Tilt Pi Settings.
 import { useState } from 'react';
 import { Masonry, Group, Dropdown, TextInput, Switch, Slider, Text, Button } from '../widgets.jsx';
-
-/** Renders legacy HTML fragments like "Contacting...<br>(allow...)" without innerHTML. */
-const withBreaks = (s) =>
-  String(s ?? '')
-    .split(/<br\s*\/?>/i)
-    .flatMap((part, i) => (i ? [<br key={i} />, part] : [part]));
+import SafeHtml from '../SafeHtml.jsx';
 
 export function TiltSelect({ state, color, setColor }) {
   return (
@@ -29,10 +24,10 @@ function CloudStatus({ state, color }) {
       <div>
         <strong>Cloud Status: </strong>
         <br />
-        {!forSelected && withBreaks(s.cloudwait)}
+        {!forSelected && <SafeHtml html={s.cloudwait} />}
       </div>
       <div>
-        {s.result}
+        <SafeHtml html={s.result} />
         {link && (
           <a href={link} target="_blank" rel="noreferrer"> | View Cloud Log</a>
         )}
