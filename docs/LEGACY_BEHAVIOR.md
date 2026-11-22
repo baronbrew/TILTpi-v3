@@ -98,6 +98,10 @@ differences — everything else should be identical. `legacy/flow.json` is the s
   switch (auto-fills both numerics every second; editing either numeric turns it off), Actual SG,
   Calibrate in Known SG, points table (≤5 rows, X deletes), Delete All. Points stored as strings
   (`toFixed(4)`), each list sorted independently.
+  *Port change (requested):* when the gravity unit is Plato or Brix, the group, labels, numerics
+  (2 decimals, step .01) and points table use that unit; values are converted to SG in the browser
+  (`web/src/units.js`, same formulas as the server) before `addSGPoint`, so points are still stored
+  in SG and stay valid when the unit changes. Numerics can be typed again (legacy ui_numeric).
 - Temp: same with Ice Water (32.0 °F or 0.0 °C by display units), numerics −20…220 step .1.
 
 ## 9. System tab

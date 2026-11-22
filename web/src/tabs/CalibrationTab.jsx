@@ -2,8 +2,9 @@
 import { useEffect, useState } from 'react';
 import { Masonry, Group, Button, Numeric, Switch } from '../widgets.jsx';
 import { TiltSelect } from './LoggingTab.jsx';
+import { gravityUnit } from '../units.js';
 
-function PointsTable({ title, uncal, actual, onDelete }) {
+function PointsTable({ title, uncal, actual, onDelete, show = (v) => v }) {
   return (
     <div className="w-template cal-table">
       <h4>{title}</h4>
@@ -15,8 +16,8 @@ function PointsTable({ title, uncal, actual, onDelete }) {
           {[0, 1, 2, 3, 4].map((i) => (
             <tr key={i} style={{ visibility: uncal[i] === undefined ? 'hidden' : 'visible' }}>
               <td><button type="button" className="cal-del" onClick={() => onDelete(i)}>X</button></td>
-              <td>{uncal[i]}</td>
-              <td>{actual[i]}</td>
+              <td>{show(uncal[i])}</td>
+              <td>{show(actual[i])}</td>
             </tr>
           ))}
         </tbody>
@@ -28,10 +29,16 @@ function PointsTable({ title, uncal, actual, onDelete }) {
 /**
  * One calibration group. While "Get Current" is on, both numerics follow the live reading every
  * second; changing either numeric turns it off (legacy behavior).
+ * Gravity is shown and entered in the System tab's unit (SG/Plato/Brix) but always sent and stored
+ * as SG, so existing points stay valid when the unit changes. (Temperature points are in the
+ * display unit, as legacy.)
  */
 function CalibrationGroup({ kind, state, color, send }) {
   const isSG = kind === 'SG';
+  const unit = gravityUnit(state.settings.fermdisplayUnits);
   const [auto, setAuto] = useState(true);
+  // Values typed in the old unit would be misread after a unit change: go back to live values.
+  useEffect(() => setAuto(true), [unit.name]);
   const [uncal, setUncal] = useState(undefined);
   const [actual, setActual] = useState(undefined);
 
@@ -40,37 +47,41 @@ function CalibrationGroup({ kind, state, color, send }) {
   useEffect(() => {
     if (!auto || !reading) return;
     if (isSG) {
-      setUncal(Number(reading.uncalSG).toFixed(4));
-      setActual(Number(reading.SG).toFixed(4));
+      setUncal(unit.show(reading.uncalSG));
+      setActual(unit.show(reading.SG));
     } else {
       setUncal(Number(reading.displayuncalTemp).toFixed(1));
       setActual(Number(reading.displayTemp).toFixed(1));
     }
-  }, [auto, reading, isSG]);
+  }, [auto, reading, isSG, unit.name]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const tilt = (color && state.tilts[color]) || {};
   const points = isSG
     ? { uncal: tilt.uncalSGPoints ?? [], actual: tilt.actualSGPoints ?? [] }
     : { uncal: tilt.uncalTempPoints ?? [], actual: tilt.actualTempPoints ?? [] };
-  const add = (which) => send(isSG ? 'addSGPoint' : 'addTempPoint', { color, kind: which, uncal, actual });
+  const add = (which) => send(isSG ? 'addSGPoint' : 'addTempPoint', isSG
+    ? { color, kind: which, uncal: uncal === undefined ? uncal : unit.sg(uncal), actual: actual === undefined ? actual : unit.sg(actual) }
+    : { color, kind: which, uncal, actual });
   const edit = (setter) => (v) => {
     setter(v);
     setAuto(false);
   };
-  const range = isSG ? { min: 0.99, max: 1.12, step: 0.0001 } : { min: -20, max: 220, step: 0.1 };
+  const range = isSG ? unit.range(0.99, 1.12) : { min: -20, max: 220, step: 0.1 };
+  const g = unit.name; // 'SG' | 'Plato' | 'Brix'
 
   return (
-    <Group title={isSG ? 'Specific Gravity Calibration' : 'Temperature Calibration'}>
+    <Group title={isSG ? (g === 'SG' ? 'Specific Gravity Calibration' : `Gravity Calibration (${g})`) : 'Temperature Calibration'}>
       <Button label={isSG ? 'Calibrate in Water' : 'Calibrate in Ice Water'} onClick={() => add(isSG ? 'water' : 'ice')} />
-      <Numeric label={isSG ? 'Enter Pre-cal/Tilt SG' : 'Enter Pre-cal/Tilt Temp'} value={uncal} {...range} onChange={edit(setUncal)} />
-      <Switch label={isSG ? 'Get Current SG' : 'Get Current Temp'} checked={auto} onChange={setAuto} />
-      <Numeric label={isSG ? 'Enter Actual SG' : 'Enter Actual Temp'} value={actual}
-        {...(isSG ? { min: 0.99, max: 1.2, step: 0.0001 } : range)} onChange={edit(setActual)} />
-      <Button label={isSG ? 'Calibrate in Known SG' : 'Calibrate in Known Temp'} onClick={() => add('known')} />
+      <Numeric label={isSG ? `Enter Pre-cal/Tilt ${g}` : 'Enter Pre-cal/Tilt Temp'} value={uncal} {...range} onChange={edit(setUncal)} />
+      <Switch label={isSG ? `Get Current ${g}` : 'Get Current Temp'} checked={auto} onChange={setAuto} />
+      <Numeric label={isSG ? `Enter Actual ${g}` : 'Enter Actual Temp'} value={actual}
+        {...(isSG ? unit.range(0.99, 1.2) : range)} onChange={edit(setActual)} />
+      <Button label={isSG ? `Calibrate in Known ${g}` : 'Calibrate in Known Temp'} onClick={() => add('known')} />
       <PointsTable
-        title={isSG ? 'SG Calibration Points:' : 'Temp Calibration Points:'}
+        title={isSG ? `${g} Calibration Points:` : 'Temp Calibration Points:'}
         uncal={points.uncal}
         actual={points.actual}
+        show={isSG ? unit.show : undefined}
         onDelete={(index) => send(isSG ? 'removeSGPoint' : 'removeTempPoint', { color, index })}
       />
       <Button label="Delete All" danger onClick={() => color && send(isSG ? 'clearSGPoints' : 'clearTempPoints', { color })} />
