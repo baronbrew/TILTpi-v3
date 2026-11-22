@@ -70,7 +70,11 @@ export class TiltPiApp extends EventEmitter {
       user: config.user,
       onStatus: (text) => this.#setUi({ usbStatus: text }),
     });
-    this.rangeBoost = new RangeBooster({ settings: this.settings, onScan: (s) => this.processScan(s) });
+    this.rangeBoost = new RangeBooster({
+      settings: this.settings,
+      onScan: (s) => this.processScan(s),
+      onStatus: () => this.emit('state'),
+    });
     this.provisioningPending = true; // legacy "Send Tilt Colors" startup flag
     this.settings.on('change', () => this.emit('state'));
   }
@@ -225,6 +229,7 @@ export class TiltPiApp extends EventEmitter {
       rangerUrls: Array.from({ length: MAX_RANGERS }, (_, i) =>
         g.rangerHostnames?.[i] ? rangerUrl(g.rangerHostnames[i]) : '',
       ),
+      rangerStatus: this.rangeBoost.status,
     };
   }
 

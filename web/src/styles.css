@@ -146,6 +146,12 @@ a { color: white; text-decoration: none; }
 .cal-table table { width: 100%; border-collapse: collapse; }
 .cal-table th, .cal-table td { text-align: center; padding: 3px 0; }
 .ranger-table td:last-child { text-align: left; padding-left: 10px; }
+.ranger-light {
+  display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 6px;
+  vertical-align: -1px; background: #777;
+}
+.ranger-light.ok { background: #2ecc40; }
+.ranger-light.fail { background: #ff4136; }
 .ranger-url { font-size: 12px; opacity: .7; }
 .cal-del {
   background: var(--danger-bg); color: #fff; border: 0; min-width: 56px; height: 34px; cursor: pointer;

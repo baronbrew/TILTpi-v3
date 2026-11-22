@@ -12,8 +12,11 @@ const SCREEN_TIMEOUTS = [
 ];
 const MAX_RANGERS = 4;
 
+const LIGHT = { true: 'ok', false: 'fail', undefined: 'unknown' };
+const LIGHT_TITLE = { true: 'Connected', false: 'Connection failed', undefined: 'Not checked (Range Booster off)' };
+
 /** Range booster Tilt Pis, deletable like the calibration points (fixed height: 4 rows). */
-function RangerTable({ hosts, urls, onDelete }) {
+function RangerTable({ hosts, urls, status, onDelete }) {
   return (
     <div className="w-template cal-table ranger-table">
       <table>
@@ -24,7 +27,14 @@ function RangerTable({ hosts, urls, onDelete }) {
           {Array.from({ length: MAX_RANGERS }, (_, i) => (
             <tr key={i} style={{ visibility: hosts[i] === undefined ? 'hidden' : 'visible' }}>
               <td><button type="button" className="cal-del" onClick={() => onDelete(hosts[i])}>X</button></td>
-              <td><div>{hosts[i]}</div><div className="ranger-url">{urls[i]}</div></td>
+              <td>
+                <div>
+                  <span className={'ranger-light ' + LIGHT[String(status[hosts[i]])]}
+                    title={LIGHT_TITLE[String(status[hosts[i]])]} />
+                  {hosts[i]}
+                </div>
+                <div className="ranger-url">{urls[i]}</div>
+              </td>
             </tr>
           ))}
         </tbody>
@@ -93,7 +103,7 @@ export default function SystemTab({ state, statics, send }) {
       <Group title="Boost Range with Mulitple Tilt Pi's" key="range">
         <Switch label="Enable Range Booster Mode" checked={g.enableRangeBoost} onChange={(v) => send('setRangeBoost', { value: v })} />
         <TextInput label="Add Tilt Pi (ex. tiltpi-north)" value="" onCommit={(v) => send('addRangerHostname', { name: v })} />
-        <RangerTable hosts={g.rangerHostnames ?? []} urls={state.rangerUrls}
+        <RangerTable hosts={g.rangerHostnames ?? []} urls={state.rangerUrls} status={state.rangerStatus ?? {}}
           onDelete={(name) => send('removeRangerHostname', { name })} />
       </Group>
 
