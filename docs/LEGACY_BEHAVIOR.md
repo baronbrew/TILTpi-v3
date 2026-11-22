@@ -135,7 +135,9 @@ differences — everything else should be identical. `legacy/flow.json` is the s
 
 ## 11. First boot / provisioning (files on the boot partition, from `legacy/SETUP/SETUP.html`)
 - `wpa_supplicant.conf`: ssid/psk lines → `raspi-config nonint do_wifi_ssid_passphrase`; file
-  removed on success.
+  removed on success. *Port addition:* its `country=XX` line (SETUP.html always writes `GB`) is
+  applied with `do_wifi_country` only when the Pi has no WiFi country yet; Trixie keeps WiFi
+  blocked until one is set. The images ship SETUP.html, logo.png and `mdl/` on the boot partition.
 - `cloud_log_<color>.json` (`{"Color","Comment"(email),"Beer":[name,true]}`): processed once the
   first Tilt is displayed after boot: default cloud URL, comment = email, cloud+local logging on,
   15 min intervals, beer name, post now, log reset; after 60 s comment = dashboard IP link and post

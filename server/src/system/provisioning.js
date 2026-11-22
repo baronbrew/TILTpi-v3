@@ -20,8 +20,12 @@ export async function importWifi(bootDir) {
   for (const line of text.split(/\r?\n/)) {
     const country = line.match(/^\s*country=([A-Za-z]{2})\s*$/);
     if (country) {
-      // Pi OS keeps WiFi rfkill-blocked until a regulatory country is set.
-      await run('raspi-config', ['nonint', 'do_wifi_country', country[1].toUpperCase()], { sudo: true });
+      // Pi OS keeps WiFi rfkill-blocked until a regulatory country is set. SETUP.html always
+      // writes country=GB, so only use it when the Pi has no country yet (our images set one).
+      const current = await run('raspi-config', ['nonint', 'get_wifi_country'], { sudo: true });
+      if (current.code !== 0 || !/^[A-Z]{2}$/.test(current.stdout.trim())) {
+        await run('raspi-config', ['nonint', 'do_wifi_country', country[1].toUpperCase()], { sudo: true });
+      }
     } else if (line.indexOf('ssid') > -1) {
       ssid = unquote(line.split('=')[1] ?? '');
     } else if (line.indexOf('psk') > -1) {
