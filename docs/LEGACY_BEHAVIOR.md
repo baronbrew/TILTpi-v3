@@ -35,6 +35,10 @@ differences — everything else should be identical. `legacy/flow.json` is the s
    `<data>/<Color>.json` (kept for `/data/` compatibility and downgrade).
 6. Smoothing (if enabled and SG > 0.5): per-color sample every ≥5 s, moving window of
    `numberSamples*12` samples, output `SG*(1-α)+mean*α` (α = %/100). Defaults α=100 %, 0.5 min.
+   *Port change (requested):* the window is now time-based: the mean of the readings whose
+   timestamps are within the last `numberSamples` minutes (≤1 sample/s per color so Range Booster
+   duplicates don't skew it; 0 min = no averaging, legacy treated 0 as 36 samples). Output formula
+   and α unchanged. Legacy's count-based window depended on how often the Tilt was heard.
 7. Calibration ("Interpolate"): piecewise-linear interpolation through the cal points plus
    sentinels (SG: −0.001 and MAX_VALUE; Temp: −999 and MAX_VALUE). Temp cal points are in display
    units (°C conversion uses `×0.5555`, back with `×1.8+32` — kept for identical numbers).

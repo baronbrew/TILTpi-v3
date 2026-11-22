@@ -91,7 +91,7 @@ const PROCESSED_FIELDS = [
   'displayuncalTemp', 'displayTemp',
 ];
 
-test('pipeline (enrich → smooth → calibrate) matches legacy for 3000 random readings', () => {
+test('pipeline (enrich → calibrate, smoothing off) matches legacy for 3000 random readings', () => {
   const rand = rng(42);
   const uuids = Object.keys(UUID_TO_COLOR);
   const calSets = [
@@ -129,7 +129,9 @@ test('pipeline (enrich → smooth → calibrate) matches legacy for 3000 random 
       color,
       sgPoints: calSets[Math.floor(rand() * calSets.length)],
       tempPoints: tempSets[Math.floor(rand() * tempSets.length)],
-      smooth: { on: rand() < 0.5, alphaSG: 1 + Math.floor(rand() * 100), alphaTemp: 1 + Math.floor(rand() * 100), numberSamples: rand() * 3 },
+      // Smoothing is time-based now (test/smoothing.test.js), no longer legacy-identical: keep it off
+      // here so the rest of the pipeline is still compared against legacy.
+      smooth: { on: (rand(), false), alphaSG: 1 + Math.floor(rand() * 100), alphaTemp: 1 + Math.floor(rand() * 100), numberSamples: rand() * 3 },
     };
     const D = fixedDate(t);
     const { flow, settings } = makeEnv(opts);

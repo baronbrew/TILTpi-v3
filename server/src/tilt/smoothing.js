@@ -1,8 +1,15 @@
-// Port of the legacy "Smooth" function node. Keeps per-color sample history.
-// The algorithm (including its sample-flag alternation) is kept exactly so readings match.
+// Smoothing (System tab → Tilt Measurement Smoothing), per Tilt color:
+//   average = moving average of the readings from the last "Averaging Time" minutes (by timestamp)
+//   output  = current × (1 − %) + average × %      (% = Temperature / Gravity Smoothing %)
+//
+// Legacy's "Smooth" node kept the last `minutes × 12` samples assuming one per 5 s, but how often
+// a sample was taken depended on how often the Tilt was heard (and on an alternating flag), so
+// "minutes" wasn't really minutes. This version uses the readings' timestamps.
+
+export const MIN_SAMPLE_SPACING_MS = 1000; // ≤ 1 sample/s per Tilt: Range Booster duplicates don't skew it
 
 export class Smoother {
-  #state = new Map();
+  #state = new Map(); // color -> { samples: [{t, SG, Temp}] }
 
   reset() {
     this.#state.clear();
@@ -10,55 +17,49 @@ export class Smoother {
 
   /**
    * Mutates and returns `payload` (SG / Temp replaced by smoothed values when enabled).
-   * @param {object} payload enriched reading
+   * @param {object} payload enriched reading (timeStamp in ms, SG and Temp numbers)
    * @param {{smoothSwitch?:boolean, alphaSG?:number, alphaTemp?:number, numberSamples?:number}} g
    */
   apply(payload, g) {
-    const smoothSwitch = g.smoothSwitch || false;
-    if (!(smoothSwitch && payload.SG > 0.5)) return payload;
+    if (!(g.smoothSwitch && payload.SG > 0.5)) return payload;
 
-    const color = payload.Color;
-    if (!this.#state.has(color)) this.#state.set(color, {});
-    const ctx = this.#state.get(color);
-
-    const SG = payload.SG;
-    const Temp = payload.Temp;
-    const alphaSG = g.alphaSG / 100 || 0.5;
+    const alphaSG = g.alphaSG / 100 || 0.5; // same defaults as legacy
     const alphaTemp = g.alphaTemp / 100 || 0.5;
-    const numberSamples = g.numberSamples * 12 || 36; // 5 s samples → minutes × 12
-    const sampleRate = 5000;
-    let timeSinceLastSample = ctx.timeSinceLastSample || sampleRate;
-    const prevSampleTime = ctx.prevSampleTime || payload.timeStamp;
-    const sampleTakenFlag = ctx.sampleTakenFlag || 'not taken';
-    const prevSGArray = ctx.SG || [];
-    const prevTempArray = ctx.Temp || [];
+    const windowMs = Math.max(0, Number(g.numberSamples) || 0) * 60000; // "Averaging Time (Minutes)"
+    const t = payload.timeStamp;
+    const SG = Number(payload.SG);
+    const Temp = Number(payload.Temp);
 
-    if (timeSinceLastSample >= sampleRate && sampleTakenFlag == 'not taken') {
-      ctx.sampleTakenFlag = 'taken';
-      prevSGArray.push(SG);
-      prevTempArray.push(Temp);
-      if (prevSGArray.length > numberSamples || prevTempArray.length > numberSamples) {
-        prevSGArray.shift();
-        prevTempArray.shift();
-      }
-      ctx.SG = prevSGArray;
-      ctx.Temp = prevTempArray;
-      ctx.prevSampleTime = payload.timeStamp;
-    } else {
-      ctx.sampleTakenFlag = 'not taken';
+    let ctx = this.#state.get(payload.Color);
+    const last = ctx?.samples[ctx.samples.length - 1];
+    if (!ctx || (last && t < last.t)) {
+      // first reading, or the clock went backwards (time set manually): start a new window
+      ctx = { samples: [] };
+      this.#state.set(payload.Color, ctx);
     }
-    timeSinceLastSample = payload.timeStamp - prevSampleTime;
-    ctx.timeSinceLastSample = timeSinceLastSample;
+    const samples = ctx.samples;
+    const newest = samples[samples.length - 1];
+    if (!newest || t - newest.t >= MIN_SAMPLE_SPACING_MS) samples.push({ t, SG, Temp });
+    // Drop samples that left the window (always keep the newest).
+    let drop = 0;
+    while (drop < samples.length - 1 && samples[drop].t < t - windowMs) drop++;
+    if (drop) samples.splice(0, drop);
 
     let totalSG = 0;
-    for (let i = 0; i < prevSGArray.length; i++) totalSG += prevSGArray[i];
-    const meanSG = totalSG / prevSGArray.length;
-    payload.SG = SG * (1 - alphaSG) + meanSG * alphaSG;
-
     let totalTemp = 0;
-    for (let i = 0; i < prevTempArray.length; i++) totalTemp += prevTempArray[i];
-    const meanTemp = totalTemp / prevTempArray.length;
+    for (const s of samples) {
+      totalSG += s.SG;
+      totalTemp += s.Temp;
+    }
+    const meanSG = totalSG / samples.length;
+    const meanTemp = totalTemp / samples.length;
+    payload.SG = SG * (1 - alphaSG) + meanSG * alphaSG;
     payload.Temp = Temp * (1 - alphaTemp) + meanTemp * alphaTemp;
     return payload;
+  }
+
+  /** For tests/diagnostics: number of samples held for a color. */
+  sampleCount(color) {
+    return this.#state.get(color)?.samples.length ?? 0;
   }
 }
