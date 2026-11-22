@@ -7,4 +7,7 @@ cd "$APP"
 sudo -u pi git fetch --depth 1 origin "$BRANCH"
 sudo -u pi git checkout -B "$BRANCH" FETCH_HEAD
 cd server && sudo -u pi npm ci --omit=dev --no-audit --no-fund
+# Pick up changes to the service unit too.
+cp "$APP/deploy/tiltpi.service" /etc/systemd/system/tiltpi.service
+systemctl daemon-reload
 systemctl restart tiltpi

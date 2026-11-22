@@ -12,9 +12,9 @@ ExecStartPre=+-/usr/sbin/rfkill unblock bluetooth
 ExecStart=/usr/bin/node src/index.js
 Restart=always
 RestartSec=5
-# Raw HCI access for noble without running as root
+# Raw HCI access for noble without running as root. Don't add a CapabilityBoundingSet: it also
+# caps the sudo the app uses for reboot/shutdown/timezone/hostname/WiFi, and sudo then fails.
 AmbientCapabilities=CAP_NET_RAW CAP_NET_ADMIN
-CapabilityBoundingSet=CAP_NET_RAW CAP_NET_ADMIN
 
 [Install]
 WantedBy=multi-user.target
