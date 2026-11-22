@@ -17,6 +17,8 @@ export class RangeBooster {
     this.timer = null;
     /** hostname -> true (last poll answered) / false (failed). Absent = not checked yet. */
     this.status = {};
+    this.useLocal = {}; // hostname -> true when "<name>.local" is the form that answers
+    this.busy = new Set();
   }
 
   #setStatus(host, ok) {
@@ -66,20 +68,46 @@ export class RangeBooster {
     this.timer = setInterval(() => this.pollOnce(), POLL_MS);
   }
 
-  pollOnce() {
-    for (const host of this.settings.global.rangerHostnames ?? []) {
-      this.fetch(rangerUrl(host), { signal: AbortSignal.timeout(POLL_MS * 2) })
-        .then((r) => {
-          if (!r.ok) throw new Error('HTTP ' + r.status);
-          return r.json();
-        })
-        .then((scans) => {
-          if (!Array.isArray(scans)) throw new Error('not a /tiltscan reply');
-          this.#setStatus(host, true);
-          for (const s of scans) this.onScan(s);
-        })
-        .catch(() => this.#setStatus(host, false)); // unreachable rangers are otherwise ignored
+  /**
+   * URL currently used for a ranger. Bare names (legacy: "tiltpi-north") only resolve when the
+   * router's DNS knows Pi hostnames, so if one fails we also try "<name>.local" (mDNS) and keep
+   * whichever answered.
+   */
+  urlFor(host) {
+    return rangerUrl(this.useLocal[host] ? host + '.local' : host);
+  }
+
+  async #fetchScans(url) {
+    const r = await this.fetch(url, { signal: AbortSignal.timeout(POLL_MS * 2) });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const scans = await r.json();
+    if (!Array.isArray(scans)) throw new Error('not a /tiltscan reply');
+    return scans;
+  }
+
+  async #pollHost(host) {
+    if (this.busy.has(host)) return; // previous attempt (incl. fallback) still running
+    this.busy.add(host);
+    try {
+      let scans;
+      try {
+        scans = await this.#fetchScans(this.urlFor(host));
+      } catch (err) {
+        if (host.includes('.')) throw err; // already qualified (name.local, IP address...)
+        this.useLocal[host] = !this.useLocal[host];
+        scans = await this.#fetchScans(this.urlFor(host));
+      }
+      this.#setStatus(host, true);
+      for (const s of scans) this.onScan(s);
+    } catch {
+      this.#setStatus(host, false); // unreachable rangers are otherwise ignored
+    } finally {
+      this.busy.delete(host);
     }
+  }
+
+  pollOnce() {
+    for (const host of this.settings.global.rangerHostnames ?? []) this.#pollHost(host);
   }
 
   stop() {

@@ -12,7 +12,7 @@ import { ScanSnapshot } from './tilt/scanSnapshot.js';
 import { CloudLogger } from './logging/cloud.js';
 import { LocalLogger } from './logging/local.js';
 import { LegacyBackup } from './logging/legacyBackup.js';
-import { RangeBooster, rangerUrl, MAX_RANGERS } from './rangeBoost.js';
+import { RangeBooster, MAX_RANGERS } from './rangeBoost.js';
 import { UsbExporter } from './system/usb.js';
 import * as sys from './system/system.js';
 import { importWifi, takeCloudLogFiles } from './system/provisioning.js';
@@ -227,7 +227,7 @@ export class TiltPiApp extends EventEmitter {
       tilts,
       ui: this.ui,
       rangerUrls: Array.from({ length: MAX_RANGERS }, (_, i) =>
-        g.rangerHostnames?.[i] ? rangerUrl(g.rangerHostnames[i]) : '',
+        g.rangerHostnames?.[i] ? this.rangeBoost.urlFor(g.rangerHostnames[i]) : '',
       ),
       rangerStatus: this.rangeBoost.status,
     };
