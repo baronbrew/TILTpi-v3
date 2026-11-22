@@ -12,7 +12,12 @@ function booster(answering) {
     if (!answering.includes(url)) throw new Error('ENOTFOUND');
     return new Response(JSON.stringify([{ mac: 'aa' }]));
   };
-  const b = new RangeBooster({ settings, onScan: (s) => scans.push(s), fetchImpl });
+  // Test lookup: "*.local" and IPs resolve to themselves, bare names don't resolve (like this LAN).
+  const lookup = async (name) => {
+    if (name.endsWith('.local') || /^[\d.]+$/.test(name)) return name;
+    throw Object.assign(new Error('not found'), { code: 'ENOTFOUND' });
+  };
+  const b = new RangeBooster({ settings, onScan: (s) => scans.push(s), fetchImpl, lookup });
   return { b, settings, scans };
 }
 const settle = () => new Promise((r) => setTimeout(r, 20));
@@ -41,4 +46,18 @@ test('IP addresses are used as-is', async () => {
   b.addHostname('192.168.0.127');
   await settle();
   assert.equal(b.status['192.168.0.127'], true);
+});
+
+test('a slow-to-fail host does not make working hosts fail', async () => {
+  const { b, settings } = booster(['http://tiltpi-office.local:1880/tiltscan']);
+  const slow = b.lookup;
+  b.lookup = async (name) => {
+    if (name.startsWith('tiltpi-dead')) await new Promise((r) => setTimeout(r, 50));
+    return slow(name);
+  };
+  settings.global.rangerHostnames = ['tiltpi-dead', 'tiltpi-office'];
+  b.pollOnce();
+  await new Promise((r) => setTimeout(r, 200));
+  assert.equal(b.status['tiltpi-office'], true);
+  assert.equal(b.status['tiltpi-dead'], false);
 });
