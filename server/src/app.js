@@ -402,7 +402,11 @@ export class TiltPiApp extends EventEmitter {
     async applyTimezone({ tz }) {
       const r = await sys.setTimezone(tz);
       if (r.code !== 0) return this.toast({ topic: 'Error', message: r.stderr });
-      this.#restartNeeded();
+      // Legacy needed a restart; applying it to this process too makes it take effect now.
+      process.env.TZ = tz;
+      this.#setUi({ timeStatus: '' });
+      this.refreshSystemTime();
+      this.toast({ topic: 'Time Zone', message: `Time zone set to ${tz}` });
     },
     async setSystemTime({ value }) {
       const r = await sys.setSystemTime(value);
