@@ -2,6 +2,22 @@
 import { useState } from 'react';
 import { Masonry, Group, Dropdown, Button, TextInput, Text, Switch, Numeric, Slider } from '../widgets.jsx';
 
+// Date format choices (cards + log.csv). Labels show a sample, formatted by this browser.
+const SAMPLE_DATE = new Date(2026, 10, 22, 13, 44, 38);
+const LOCALES = ['en-US', 'en-GB', 'en-CA', 'en-AU', 'en-NZ', 'de-DE', 'fr-FR', 'es-ES', 'es-MX', 'it-IT',
+  'nl-NL', 'pt-BR', 'sv-SE', 'da-DK', 'nb-NO', 'fi-FI', 'pl-PL', 'cs-CZ', 'ja-JP', 'ko-KR', 'zh-CN'];
+const sample = (locale) => {
+  try {
+    return SAMPLE_DATE.toLocaleString(locale, { numberingSystem: 'latn' });
+  } catch {
+    return '';
+  }
+};
+function localeOptions(current) {
+  const list = current && !LOCALES.includes(current) ? [current, ...LOCALES] : LOCALES;
+  return [{ label: 'Raspberry Pi default', value: '' }, ...list.map((l) => ({ label: `${l}: ${sample(l)}`, value: l }))];
+}
+
 const SCREEN_TIMEOUTS = [
   { label: 'Never', value: 0 },
   { label: '1 minute', value: 60 },
@@ -67,6 +83,8 @@ export default function SystemTab({ state, statics, send }) {
         <Switch label="SG 15°C/59°F (default)" checked={g.fermdisplayUnits === ''} onChange={(on) => on && send('setFermUnits', { value: '' })} />
         <Switch label="Plato" checked={g.fermdisplayUnits === '°P'} onChange={(on) => on && send('setFermUnits', { value: '°P' })} />
         <Switch label="Brix" checked={g.fermdisplayUnits === '°Bx'} onChange={(on) => on && send('setFermUnits', { value: '°Bx' })} />
+        <Dropdown label="Date Format" placeholder="Select" options={localeOptions(g.locale ?? '')}
+          value={g.locale ?? ''} onChange={(v) => send('setLocale', { value: v })} />
       </Group>
 
       <Group title="Tilt Measurement Smoothing" key="smooth">

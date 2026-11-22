@@ -157,7 +157,12 @@ differences — everything else should be identical. `legacy/flow.json` is the s
   *Port addition:* SETUP.html now builds this file with `JSON.stringify` (quotes in names no longer
   break it) and adds the browser's `Timezone` (IANA name) and `Locale`. At startup, before Bluetooth
   scanning begins, the app applies `Timezone` with `timedatectl` and to its own process, so the
-  first log entries are already local time. `Locale` is only logged for now.
+  first log entries are already local time. `Locale` (also applied at startup) sets the date format
+  setting and presets °F (US & territories, LR, MM, BS, BZ, KY, PW) or °C; gravity stays SG.
+- *Port addition:* global setting `locale` (System tab → Display Units → Date Format; '' = the Pi's
+  system locale, i.e. legacy behavior) formats the card date (`formatteddate`) and log.csv's Time
+  column, always with Latin digits. All commas in log.csv's Time are now replaced (legacy replaced
+  the first only; en-GB dates have one, so output is unchanged).
 
 ## 12. Persistence
 - Legacy settings lived in Node-RED memory and were only saved through §3.5 (so changes made with

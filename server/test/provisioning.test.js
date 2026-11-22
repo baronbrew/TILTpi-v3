@@ -13,16 +13,16 @@ test('handles CRLF line endings and an open network', () => {
   assert.deepEqual(parseWpaSupplicant(text), { country: 'US', ssid: 'Open', psk: '' });
 });
 
-test('peekCloudLogTimezone reads the Timezone SETUP.html adds, without deleting the file', async () => {
+test('peekCloudLogSetup reads the Timezone/Locale SETUP.html adds, without deleting the file', async () => {
   const fs = await import('node:fs');
   const os = await import('node:os');
   const path = await import('node:path');
-  const { peekCloudLogTimezone } = await import('../src/system/provisioning.js');
+  const { peekCloudLogSetup } = await import('../src/system/provisioning.js');
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tiltpi-boot-'));
-  assert.equal(peekCloudLogTimezone(dir), undefined);
+  assert.deepEqual(peekCloudLogSetup(dir), {});
   const file = path.join(dir, 'cloud_log_red.json');
   fs.writeFileSync(file, JSON.stringify({ Color: 'RED', Comment: '', Beer: ['x', true], Timezone: 'Europe/Berlin', Locale: 'de-DE' }));
-  assert.equal(peekCloudLogTimezone(dir), 'Europe/Berlin');
+  assert.deepEqual(peekCloudLogSetup(dir), { Timezone: 'Europe/Berlin', Locale: 'de-DE' });
   assert.ok(fs.existsSync(file));
   fs.rmSync(dir, { recursive: true, force: true });
 });

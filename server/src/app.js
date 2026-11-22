@@ -15,7 +15,8 @@ import { LegacyBackup } from './logging/legacyBackup.js';
 import { RangeBooster, MAX_RANGERS } from './rangeBoost.js';
 import { UsbExporter } from './system/usb.js';
 import * as sys from './system/system.js';
-import { importWifi, takeCloudLogFiles, peekCloudLogTimezone } from './system/provisioning.js';
+import { importWifi, takeCloudLogFiles, peekCloudLogSetup } from './system/provisioning.js';
+import { normalizeLocale, temperatureUnitFor } from './locale.js';
 import { MdnsWatchdog, CHECK_MS as MDNS_CHECK_MS } from './system/mdns.js';
 import { currentVersion, checkLatestRelease, startUpdate } from './system/updater.js';
 
@@ -99,7 +100,10 @@ export class TiltPiApp extends EventEmitter {
     this.rangeBoost.start();
     this.usb.start().catch((e) => console.warn('[usb]', e.message));
     importWifi(this.config.bootDir).catch((e) => console.warn('[wifi]', e.message));
-    await this.#applyTimezone(peekCloudLogTimezone(this.config.bootDir));
+    // SETUP.html's time zone/locale are applied before any reading is timestamped or formatted.
+    const setup = peekCloudLogSetup(this.config.bootDir);
+    await this.#applyTimezone(setup.Timezone);
+    this.#applyLocale(setup.Locale);
 
     this.#every(1000, () => this.tick());
     this.#every(60000, () => this.refreshSystemTime(), true);
@@ -181,13 +185,22 @@ export class TiltPiApp extends EventEmitter {
     this.refreshSystemTime();
   }
 
+  /** Browser locale from SETUP.html: date format on the cards and in log.csv, °F/°C for its country. */
+  #applyLocale(tag) {
+    const locale = normalizeLocale(tag);
+    if (!locale || locale === this.settings.global.locale) return;
+    const displayUnits = temperatureUnitFor(locale);
+    this.settings.setGlobal({ locale, ...(displayUnits ? { displayUnits } : {}) });
+    console.log(`[provisioning] locale ${locale}${displayUnits ? ', temperature ' + displayUnits : ''}`);
+  }
+
   /** cloud_log_<color>.json from SETUP.html ("Set Up Tilt Pi" + "Send IP Addr"). */
   async #provisionCloudLogging() {
     for (const file of await takeCloudLogFiles(this.config.bootDir)) {
       const color = file.Color;
       if (typeof color !== 'string') continue;
       await this.#applyTimezone(file.Timezone); // normally already done at startup
-      if (file.Locale) console.log(`[provisioning] browser locale: ${file.Locale}`);
+      this.#applyLocale(file.Locale); // normally already done at startup
       this.settings.setGlobal({
         useDefaultCloudURL: true,
         logCloudDataCheck: true,
@@ -396,6 +409,11 @@ export class TiltPiApp extends EventEmitter {
       if (r.code === 0) this.toast({ topic: 'System Time Updated', message: r.stdout.trim() });
       else this.toast({ message: r.stderr.trim() });
       this.refreshSystemTime();
+    },
+    setLocale({ value }) {
+      const locale = value === '' ? '' : normalizeLocale(value);
+      if (value !== '' && !locale) return this.toast({ topic: 'Alert', message: `Unknown locale "${value}"` });
+      this.settings.setGlobal({ locale });
     },
     setTempUnits({ value }) {
       if (value === '°C' || value === '°F') this.settings.setGlobal({ displayUnits: value });

@@ -1,6 +1,7 @@
 // Local CSV logging (legacy "Setup Local Log" → "changed?" → file append, "Delete Log", stat).
 import fs from 'node:fs';
 import path from 'node:path';
+import { formatDateTime } from '../locale.js';
 
 export const LOG_HEADER = 'Time,Timepoint,Temp,SG,Beer,Color,Comment,RSSI,Uptime';
 const REWRITE_AFTER_MS = 900000; // write an unchanged line at least every 15 min
@@ -15,7 +16,7 @@ export function localLogLineFor(reading, settings, date = new Date()) {
   if (!(reading.timeStamp - lastPost > interval)) return null;
   const Comment = rt.comment || '';
   const Beer = settings.tilt(reading.Color).Beer || ['Untitled', true];
-  const when = date.toLocaleString().replace(',', ' ');
+  const when = formatDateTime(date, g.locale).replace(/,/g, ' '); // CSV: no commas in the Time field
   const txUnsigned = reading.tx_power & 0xff; // "unsigned bonus byte"
   rt.lastlocalpost = reading.timeStamp;
   return (

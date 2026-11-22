@@ -26,6 +26,7 @@ export const GLOBAL_DEFAULTS = Object.freeze({
   rangerHostnames: [],
   screenZoom: 1,
   screenTimeout: null, // seconds; null = never chosen
+  locale: '', // date format, e.g. 'en-US'; '' = the Pi's system locale (legacy)
 });
 
 const TILT_FIELDS = ['Beer', 'actualSGPoints', 'uncalSGPoints', 'actualTempPoints', 'uncalTempPoints', 'cloudURLs'];

@@ -2,6 +2,7 @@
 // payload used everywhere else (display, logging, /macid, legacy backup files).
 // Field names, order and value types intentionally match the legacy payload.
 import { colorForUuid } from './colors.js';
+import { formatDateTime } from '../locale.js';
 
 export const DEFAULT_CLOUD_URL =
   'https://script.google.com/macros/s/AKfycbwNXh6rEWoULd0vxWxDylG_PJwQwe0dn5hdtSkuC4k3D9AXBSA/exec';
@@ -37,7 +38,7 @@ export function enrichScan(scan, settings, date = new Date()) {
 
   p.timeStamp = date.getTime();
   const timeZone = date.getTimezoneOffset() / 24 / 60;
-  p.formatteddate = date.toLocaleString();
+  p.formatteddate = formatDateTime(date, g.locale);
   p.Timepoint = p.timeStamp / 1000 / 60 / 60 / 24 + 25569 - timeZone;
 
   p.fermunits = g.fermdisplayUnits || '';
