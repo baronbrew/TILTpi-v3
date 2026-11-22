@@ -112,7 +112,9 @@ differences — everything else should be identical. `legacy/flow.json` is the s
 - Dashboard Link: IP link (`hostname -I`), hostname link, Reset Link to tiltpi, Set New Hostname
   (RFC1123 check; `raspi-config nonint do_hostname`; dialog "Restart Now / Restart Later").
 - Boost Range: enable switch (polls each ranger's `/tiltscan` every 2.5 s), add/remove hostname
-  box (toggle, newest first, max 4), four URL readouts.
+  box (toggle, newest first, max 4), four URL readouts. *Port change (requested):* an "Add Tilt Pi"
+  box (invalid names get a toast) plus a list with an X delete button per Tilt Pi, like the
+  calibration points table; adding a 5th still drops the oldest.
 - Raspberry Pi: Screen Auto Off (Never/1 min/10 min/2 h/8 h/16 h), Screen Zoom 0.5–3
   (toast "Restart to Enable New Settings"), BT stability fix / revert for RPi3 (btuart baud),
   Restart, Shutdown. **CHANGED**: instead of `sed`-editing `~/xinitrc_chromium.sh` / LXDE autostart, the app
