@@ -26,17 +26,28 @@ export class RangeBooster {
     else this.stop();
   }
 
-  /** Add the hostname, or remove it when already present (newest first, max 4). */
-  toggleHostname(name) {
+  /** Add the hostname (newest first, max 4: the oldest drops off, as in legacy). */
+  addHostname(name) {
     if (!HOSTNAME_RE.test(name)) return false;
-    const list = [...(this.settings.global.rangerHostnames ?? [])];
-    const i = list.indexOf(name);
-    if (i < 0) list.unshift(name);
-    else list.splice(i, 1);
-    if (list.length > MAX_RANGERS) list.pop();
-    this.settings.setGlobal({ rangerHostnames: list });
+    const list = (this.settings.global.rangerHostnames ?? []).filter((h) => h !== name);
+    list.unshift(name);
+    this.settings.setGlobal({ rangerHostnames: list.slice(0, MAX_RANGERS) });
     this.pollOnce();
     return true;
+  }
+
+  removeHostname(name) {
+    const list = this.settings.global.rangerHostnames ?? [];
+    this.settings.setGlobal({ rangerHostnames: list.filter((h) => h !== name) });
+  }
+
+  /** Legacy text box: add the hostname, or remove it when already present. */
+  toggleHostname(name) {
+    if ((this.settings.global.rangerHostnames ?? []).includes(name)) {
+      this.removeHostname(name);
+      return true;
+    }
+    return this.addHostname(name);
   }
 
   #startPolling() {

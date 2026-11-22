@@ -10,7 +10,28 @@ const SCREEN_TIMEOUTS = [
   { label: '8 hours', value: 28800 },
   { label: '16 hours', value: 57600 },
 ];
-const ORDINALS = ['1st', '2nd', '3rd', '4th'];
+const MAX_RANGERS = 4;
+
+/** Range booster Tilt Pis, deletable like the calibration points (fixed height: 4 rows). */
+function RangerTable({ hosts, urls, onDelete }) {
+  return (
+    <div className="w-template cal-table ranger-table">
+      <table>
+        <thead>
+          <tr><th>Delete</th><th>Tilt Pi</th></tr>
+        </thead>
+        <tbody>
+          {Array.from({ length: MAX_RANGERS }, (_, i) => (
+            <tr key={i} style={{ visibility: hosts[i] === undefined ? 'hidden' : 'visible' }}>
+              <td><button type="button" className="cal-del" onClick={() => onDelete(hosts[i])}>X</button></td>
+              <td><div>{hosts[i]}</div><div className="ranger-url">{urls[i]}</div></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
 export default function SystemTab({ state, statics, send }) {
   const g = state.settings;
@@ -71,10 +92,9 @@ export default function SystemTab({ state, statics, send }) {
 
       <Group title="Boost Range with Mulitple Tilt Pi's" key="range">
         <Switch label="Enable Range Booster Mode" checked={g.enableRangeBoost} onChange={(v) => send('setRangeBoost', { value: v })} />
-        <TextInput label="Add/Remove Tilt Pi (ex. tiltpi-north)" value="" onCommit={(v) => send('toggleRangerHostname', { name: v })} />
-        {ORDINALS.map((o, i) => (
-          <Text key={o} label={`${o} Tilt Pi URL`} value={state.rangerUrls[i]} layout="col-center" />
-        ))}
+        <TextInput label="Add Tilt Pi (ex. tiltpi-north)" value="" onCommit={(v) => send('addRangerHostname', { name: v })} />
+        <RangerTable hosts={g.rangerHostnames ?? []} urls={state.rangerUrls}
+          onDelete={(name) => send('removeRangerHostname', { name })} />
       </Group>
 
       <Group title="Raspberry Pi" key="pi">

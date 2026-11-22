@@ -432,6 +432,15 @@ export class TiltPiApp extends EventEmitter {
     toggleRangerHostname({ name }) {
       this.rangeBoost.toggleHostname(String(name ?? '').trim());
     },
+    addRangerHostname({ name }) {
+      const host = String(name ?? '').trim();
+      if (host && !this.rangeBoost.addHostname(host)) {
+        this.toast({ topic: 'Alert', message: `"${host}" is not a valid hostname (ex. tiltpi-north)` });
+      }
+    },
+    removeRangerHostname({ name }) {
+      this.rangeBoost.removeHostname(String(name ?? ''));
+    },
     setScreenZoom({ value }) {
       this.settings.setGlobal({ screenZoom: Number(value) });
       sys.writeKioskConfig(this.config.dataDir, this.settings.global);
