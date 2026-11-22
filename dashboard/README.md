@@ -8,7 +8,7 @@ plugged directly into the Raspberry Pi. It reads from the Node-RED flow's
 
 It's styled to mirror the Node-RED dashboard `:1880/ui` page — same dark theme
 (`#111` page, gray toolbar, `#333` cards) and the same Tilt card layout
-(full-width color bar, `SG/Concentration … (pre-calibrated)` + big value + fill
+(full-width color bar, `Specific Gravity/Plato/Brix … (pre-calibrated)` + big value + fill
 bar, temperature likewise, monospace `Received N seconds ago … dBm` footer) —
 so it reads as a drop-in replacement for that screen.
 

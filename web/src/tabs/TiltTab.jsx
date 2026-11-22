@@ -3,6 +3,7 @@ import { Masonry } from '../widgets.jsx';
 import { noNegZero } from '../format.js';
 
 const cssColor = (c) => (c === 'PINK' ? 'DEEPPINK' : c);
+const GRAVITY_NAME = { '': 'Specific Gravity', '°P': 'Plato', '°Bx': 'Brix' };
 const num1 = (v) => {
   const n = Number(v);
   return Number.isFinite(n) ? noNegZero(n.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })) : '';
@@ -23,7 +24,7 @@ function TiltCard({ r, now }) {
         )}
       </h1>
       <div style={{ background: color, height: 40, width: '100%' }} />
-      <h1>SG/Concentration: {noNegZero(r.uncalferm)} (pre-calibrated)</h1>
+      <h1>{GRAVITY_NAME[r.fermunits ?? ''] ?? 'Specific Gravity'}: {noNegZero(r.uncalferm)} (pre-calibrated)</h1>
       <h2>
         {noNegZero(r.ferm)}
         {r.fermunits}

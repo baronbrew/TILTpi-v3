@@ -71,7 +71,7 @@ function CalibrationGroup({ kind, state, color, send }) {
   const g = unit.name; // 'SG' | 'Plato' | 'Brix'
 
   return (
-    <Group title={isSG ? (g === 'SG' ? 'Specific Gravity Calibration' : `Gravity Calibration (${g})`) : 'Temperature Calibration'}>
+    <Group title={isSG ? (g === 'SG' ? 'Specific Gravity Calibration' : `${g} Calibration`) : 'Temperature Calibration'}>
       <Button label={isSG ? 'Calibrate in Water' : 'Calibrate in Ice Water'} onClick={() => add(isSG ? 'water' : 'ice')} />
       <Numeric label={isSG ? `Enter Pre-cal/Tilt ${g}` : 'Enter Pre-cal/Tilt Temp'} value={uncal} {...range} onChange={edit(setUncal)} />
       <Switch label={isSG ? `Get Current ${g}` : 'Get Current Temp'} checked={auto} onChange={setAuto} />

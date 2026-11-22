@@ -92,6 +92,17 @@ def clamp(x, lo, hi):
     return max(lo, min(hi, x))
 
 
+GRAVITY_NAMES = {"": "Specific Gravity", "°P": "Plato", "°Bx": "Brix"}
+
+
+def no_neg_zero(value):
+    """'-0.0' -> '0.0' (a tiny negative rounded to zero); other values unchanged."""
+    text = str(value)
+    if text.startswith("-") and text[1:].replace(".", "").strip("0") == "" and text[1:2] == "0":
+        return text[1:]
+    return text
+
+
 def to_float(value, default=None):
     try:
         return float(value)
@@ -262,18 +273,19 @@ class TiltCard(tk.Frame):
 
         # Gravity: ferm is the calibrated display value, uncalferm the raw one.
         units = d.get("fermunits", "") or ""
-        uncalferm = d.get("uncalferm", "--")
+        uncalferm = no_neg_zero(d.get("uncalferm", "--"))
+        gname = GRAVITY_NAMES.get(units, "Specific Gravity")
         self.sg_pre.config(text=(f"pre-cal {uncalferm}" if compact
-                                 else f"SG/Concentration: {uncalferm} (pre-calibrated)"))
-        self.sg.config(text=f"{d.get('ferm', d.get('SG', '--'))}{units}")
+                                 else f"{gname}: {uncalferm} (pre-calibrated)"))
+        self.sg.config(text=f"{no_neg_zero(d.get('ferm', d.get('SG', '--')))}{units}")
         self.sg_bar.set(bar_fraction(to_float(d.get("SG")), SG_MIN, SG_MAX), swatch)
 
         # Temperature: displayTemp calibrated, displayuncalTemp raw.
         tunits = d.get("tempunits", "") or ""
-        uncaltemp = d.get("displayuncalTemp", "--")
+        uncaltemp = no_neg_zero(d.get("displayuncalTemp", "--"))
         self.temp_pre.config(text=(f"pre-cal {uncaltemp}{tunits}" if compact
                                    else f"Temperature: {uncaltemp} (pre-calibrated)"))
-        self.temp.config(text=f"{d.get('displayTemp', d.get('Temp', '--'))}{tunits}")
+        self.temp.config(text=f"{no_neg_zero(d.get('displayTemp', d.get('Temp', '--')))}{tunits}")
         self.temp_bar.set(bar_fraction(to_float(d.get("Temp")), TEMP_MIN, TEMP_MAX), swatch)
 
         # Footer: formatted date, then freshness + signal.
