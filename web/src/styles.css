@@ -165,7 +165,12 @@ a { color: white; text-decoration: none; }
 }
 
 /* ---------- Tilt cards (legacy ui_template) ---------- */
-.tilt-card { height: 350px; padding: 6px 6px 0; overflow: hidden; }
+/* Height follows the content; bottom padding makes the bottom gap match the top (border + 6px
+   padding + the first heading's 4px margin). Legacy used a fixed 350px with a large bottom gap. */
+.tilt-card { padding: 6px 6px 10px; overflow: hidden; }
+.tilt-card.empty > * { visibility: hidden; }
+/* Beer name / title stay on one line so every card is the same height. */
+.tilt-card h1.one-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tilt-card h1 { font-size: .875em; font-weight: normal; margin: 4px 0 6px; }
 .tilt-card h1 strong { font-weight: bold; }
 .tilt-card h2 { font-size: 3.5em; text-indent: .5em; margin: 0; line-height: 1.15; font-weight: bold; }

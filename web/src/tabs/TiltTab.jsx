@@ -9,13 +9,20 @@ const num1 = (v) => {
   return Number.isFinite(n) ? noNegZero(n.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })) : '';
 };
 
-function TiltCard({ r, now }) {
-  if (!r) return <section className="group tilt-card" aria-hidden="true" />;
+// Empty slots render this invisibly so they're exactly as tall as a real card (cards size to
+// their content, which depends on the fonts installed).
+const PLACEHOLDER = {
+  Beer: ['-'], displayColor: ['-'], uncalferm: '1.000', ferm: '1.000', fermunits: '', SG: 0.99,
+  displayuncalTemp: '0', displayTemp: '0', tempunits: '°F', Temp: 30, formatteddate: '-', timeStamp: 0, rssi: 0,
+};
+
+function TiltCard({ r: reading, now }) {
+  const r = reading ?? PLACEHOLDER;
   const color = cssColor(r.displayColor?.[0]);
   return (
-    <section className="group tilt-card">
-      <h1>{r.Beer?.[0]}</h1>
-      <h1>
+    <section className={'group tilt-card' + (reading ? '' : ' empty')} aria-hidden={reading ? undefined : 'true'}>
+      <h1 className="one-line" title={r.Beer?.[0]}>{r.Beer?.[0]}</h1>
+      <h1 className="one-line">
         <strong>
           TILT | {r.displayColor?.[0]} {r.displayColor?.[5]} {r.displayColor?.[6]}
         </strong>
