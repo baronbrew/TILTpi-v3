@@ -8,22 +8,42 @@ on:
   push:
     tags: ['v*']
   workflow_dispatch:
+    inputs:
+      images:
+        description: Images to build
+        type: choice
+        options: [both, desktop-arm64 only, lite-armhf only]
+        default: both
 
 permissions:
   contents: write
 
 jobs:
+  # Picks the images to build (the "Images to build" choice; tag builds make both).
+  plan:
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.pick.outputs.matrix }}
+    steps:
+      - id: pick
+        env:
+          CHOICE: ${{ inputs.images || 'both' }}
+        run: |
+          desktop='{"name":"tiltpi-desktop-arm64","pi-gen-version":"arm64","stage-list":"stage0 stage1 stage2 stage3 stage4 ./image/stage-tiltpi"}'
+          lite='{"name":"tiltpi-lite-armhf","pi-gen-version":"master","stage-list":"stage0 stage1 stage2 ./image/stage-tiltpi"}'
+          case "$CHOICE" in
+            desktop*) list="$desktop" ;;
+            lite*) list="$lite" ;;
+            *) list="$desktop,$lite" ;;
+          esac
+          echo "matrix={\"include\":[$list]}" >> "$GITHUB_OUTPUT"
+          echo "Building: $CHOICE"
+
   build:
+    needs: plan
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - name: tiltpi-desktop-arm64
-            pi-gen-version: arm64
-            stage-list: stage0 stage1 stage2 stage3 stage4 ./image/stage-tiltpi
-          - name: tiltpi-lite-armhf
-            pi-gen-version: master
-            stage-list: stage0 stage1 stage2 ./image/stage-tiltpi
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     # Pinned to 24.04: on the ubuntu-26.04 image (ubuntu-latest since Nov 2026) 32-bit (i386)
     # containers can't resolve DNS (Docker's seccomp profile blocks their sockets), which breaks
     # pi-gen's i386 build container for the armhf image. Revisit when 24.04 is retired.
