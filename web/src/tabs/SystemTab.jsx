@@ -145,16 +145,18 @@ export default function SystemTab({ state, statics, send }) {
         <TextInput label="Set New Hostname (ex. tiltpi-north)" value="" onCommit={(v) => send('setHostname', { name: v })} />
       </Group>
 
-      <Group title="Boost Range with Mulitple Tilt Pi's" key="range">
-        <Switch label="Enable Range Booster Mode" checked={g.enableRangeBoost} onChange={(v) => send('setRangeBoost', { value: v })} />
-        <TextInput label="Add Tilt Pi (ex. tiltpi-north)" value="" onCommit={(v) => send('addRangerHostname', { name: v })} />
-        <RangerTable hosts={g.rangerHostnames ?? []} urls={state.rangerUrls} status={state.rangerStatus ?? {}}
-          onDelete={(name) => send('removeRangerHostname', { name })} />
-      </Group>
-
-      <Group title="Boost Range with Tilt Pico's" key="pico">
-        <PicoList picos={state.picos ?? []} send={send} />
-      </Group>
+      {/* One layout block so the Tilt Pico group always sits right above the Tilt Pi one. */}
+      <div className="group-stack" key="range">
+        <Group title="Boost Range with Tilt Pico's">
+          <PicoList picos={state.picos ?? []} send={send} />
+        </Group>
+        <Group title="Boost Range with Mulitple Tilt Pi's">
+          <Switch label="Enable Range Booster Mode" checked={g.enableRangeBoost} onChange={(v) => send('setRangeBoost', { value: v })} />
+          <TextInput label="Add Tilt Pi (ex. tiltpi-north)" value="" onCommit={(v) => send('addRangerHostname', { name: v })} />
+          <RangerTable hosts={g.rangerHostnames ?? []} urls={state.rangerUrls} status={state.rangerStatus ?? {}}
+            onDelete={(name) => send('removeRangerHostname', { name })} />
+        </Group>
+      </div>
 
       <Group title="Raspberry Pi" key="pi">
         <Dropdown label="Screen Auto Off" placeholder="Select Time Out" options={SCREEN_TIMEOUTS}

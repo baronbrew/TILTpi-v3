@@ -54,6 +54,7 @@ a { color: white; text-decoration: none; }
 /* ---------- layout ---------- */
 .masonry { position: relative; }
 .masonry-item { position: absolute; }
+.group-stack { display: flex; flex-direction: column; gap: 4px; } /* same 4px as the masonry GAP */
 
 .group {
   width: 320px; background: var(--group-bg); border: 1px solid var(--group-border);
