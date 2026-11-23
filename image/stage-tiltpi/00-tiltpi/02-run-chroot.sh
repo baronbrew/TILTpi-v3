@@ -9,4 +9,6 @@ systemctl enable tiltpi.service
 # Same passwordless sudo the app needs for System tab controls (pi-gen normally adds this too).
 echo "${FIRST_USER_NAME} ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/010_pi-nopasswd
 chmod 0440 /etc/sudoers.d/010_pi-nopasswd
-sudo -u "${FIRST_USER_NAME}" -H bash "$APP/deploy/kiosk/setup.sh"
+# As root: on the armhf build (qemu emulation) sudo from a normal user fails with "effective uid
+# is not 0", so setup.sh does the system parts directly and chowns the user's files.
+TILTPI_USER="${FIRST_USER_NAME}" bash "$APP/deploy/kiosk/setup.sh"
