@@ -24,7 +24,10 @@ jobs:
           - name: tiltpi-lite-armhf
             pi-gen-version: master
             stage-list: stage0 stage1 stage2 ./image/stage-tiltpi
-    runs-on: ubuntu-latest
+    # Pinned to 24.04: on the ubuntu-26.04 image (ubuntu-latest since Nov 2026) 32-bit (i386)
+    # containers can't resolve DNS (Docker's seccomp profile blocks their sockets), which breaks
+    # pi-gen's i386 build container for the armhf image. Revisit when 24.04 is retired.
+    runs-on: ubuntu-24.04
     timeout-minutes: 350
     steps:
       - name: Free disk space (pi-gen needs ~15 GB)
@@ -46,10 +49,12 @@ jobs:
           # 'deb.debian.org'", so give Docker explicit DNS servers.
           echo '{"dns": ["8.8.8.8", "1.1.1.1"]}' | sudo tee /etc/docker/daemon.json
           sudo systemctl restart docker
-          for p in linux/amd64 linux/386; do
-            echo "DNS check ($p):"
-            docker run --rm --platform $p docker.io/debian:trixie getent hosts deb.debian.org || echo "  DNS FAILED on $p"
-          done
+          grep PRETTY_NAME /etc/os-release
+          # Fail fast with a clear message if 32-bit containers can't resolve names.
+          if ! docker run --rm --platform linux/386 docker.io/i386/debian:trixie getent hosts deb.debian.org; then
+            echo "::error::i386 containers can't resolve DNS on this runner image; pi-gen's armhf build can't run here"
+            exit 1
+          fi
           git clone --depth 1 https://github.com/RPi-Distro/pi-gen.git /tmp/pi-gen-prebuild
           for i in 1 2 3; do
             docker build --progress=plain --platform linux/386 \
