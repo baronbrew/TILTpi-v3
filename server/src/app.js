@@ -13,6 +13,7 @@ import { CloudLogger } from './logging/cloud.js';
 import { LocalLogger } from './logging/local.js';
 import { LegacyBackup } from './logging/legacyBackup.js';
 import { RangeBooster, MAX_RANGERS } from './rangeBoost.js';
+import { PicoBooster, isPicoUuid } from './pico.js';
 import { UsbExporter } from './system/usb.js';
 import * as sys from './system/system.js';
 import { importWifi, takeCloudLogFiles, peekCloudLogSetup } from './system/provisioning.js';
@@ -80,6 +81,11 @@ export class TiltPiApp extends EventEmitter {
       latest: { enabled: false, label: '', text: '' },
     };
 
+    this.picos = new PicoBooster({
+      settings: this.settings,
+      onScan: (s) => this.processScan(s),
+      onChange: () => this.emit('state'),
+    });
     this.mdns = new MdnsWatchdog({ onStatus: (s) => this.#setUi({ mdns: s }) });
 
     this.cloud = new CloudLogger({
@@ -117,6 +123,7 @@ export class TiltPiApp extends EventEmitter {
     this.local.init();
     this.snapshot.start();
     this.rangeBoost.start();
+    this.picos.start();
     this.usb.start().catch((e) => console.warn('[usb]', e.message));
     importWifi(this.config.bootDir).catch((e) => console.warn('[wifi]', e.message));
     // SETUP.html's time zone/locale are applied before any reading is timestamped or formatted.
@@ -147,6 +154,7 @@ export class TiltPiApp extends EventEmitter {
     this.snapshot.stop();
     this.cloud.stop();
     this.rangeBoost.stop();
+    this.picos.stop();
     this.usb.stop();
     this.backup.stop();
     this.settings.saveNow();
@@ -168,6 +176,7 @@ export class TiltPiApp extends EventEmitter {
 
   processScan(scan) {
     const g = this.settings.global;
+    if (isPicoUuid(scan.uuid)) return this.picos.noteBeacon(scan); // Tilt Pico IP beacon
     if (!(scan.rssi >= g.minRSSI)) return;
     if (!isTiltUuid(scan.uuid)) return;
     const p = enrichScan(scan, this.settings);
@@ -318,6 +327,7 @@ export class TiltPiApp extends EventEmitter {
         g.rangerHostnames?.[i] ? this.rangeBoost.urlFor(g.rangerHostnames[i]) : '',
       ),
       rangerStatus: this.rangeBoost.status,
+      picos: this.picos.list(),
     };
   }
 
@@ -550,6 +560,9 @@ export class TiltPiApp extends EventEmitter {
     },
     setRangeBoost({ value }) {
       this.rangeBoost.setEnabled(!!value);
+    },
+    setPicoEnabled({ mac, value }) {
+      if (!this.picos.setEnabled(mac, !!value)) this.toast({ topic: 'Alert', message: 'Tilt Pico address not known yet' });
     },
     toggleRangerHostname({ name }) {
       this.rangeBoost.toggleHostname(String(name ?? '').trim());

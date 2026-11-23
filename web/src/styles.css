@@ -158,6 +158,8 @@ a { color: white; text-decoration: none; }
 }
 .ranger-light.ok { background: #2ecc40; }
 .ranger-light.fail { background: #ff4136; }
+.pico-label { display: flex; flex-direction: column; line-height: 1.25; }
+.pico-sub { font-size: 12px; opacity: .7; margin-left: 18px; }
 .ranger-url { font-size: 12px; opacity: .7; }
 .cal-del {
   background: var(--danger-bg); color: #fff; border: 0; min-width: 56px; height: 34px; cursor: pointer;

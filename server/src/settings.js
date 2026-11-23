@@ -28,6 +28,7 @@ export const GLOBAL_DEFAULTS = Object.freeze({
   screenTimeout: null, // seconds; null = never chosen
   locale: '', // date format, e.g. 'en-US'; '' = the Pi's system locale (legacy)
   tempPointsUnit: '', // '°F' once temperature cal points are stored in °F (see migrateTempPoints)
+  tiltPicos: {}, // "Boost Range with Tilt Pico's": Picos turned on, { [bluetooth mac]: { ip } }
   useDefaultEmail: false, // Logging tab "Use as default email"
   defaultEmail: '', // filled into "Enter GMAIL email" when focused (only kept while the toggle is on)
 });
@@ -40,7 +41,7 @@ export class Settings extends EventEmitter {
     super();
     this.dataDir = dataDir;
     this.file = path.join(dataDir, 'settings.json');
-    this.global = { ...GLOBAL_DEFAULTS, rangerHostnames: [] };
+    this.global = { ...GLOBAL_DEFAULTS, rangerHostnames: [], tiltPicos: {} };
     /** @type {Record<string, any>} */
     this.tilts = {};
     /** @type {Map<string, {comment:string, docURL:string, lastpost:number, lastlocalpost:number}>} */

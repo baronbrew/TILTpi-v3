@@ -31,6 +31,30 @@ const MAX_RANGERS = 4;
 const LIGHT = { true: 'ok', false: 'fail', undefined: 'unknown' };
 const LIGHT_TITLE = { true: 'Connected', false: 'Connection failed', undefined: 'Not checked (Range Booster off)' };
 
+/**
+ * Tilt Picos found by their IP beacon; each has an on/off switch. On = polled every 5 s for the
+ * Tilts it hears. Light: green connected, red failed, grey off / not polled yet.
+ */
+function PicoList({ picos, send }) {
+  if (!picos.length) {
+    return <Text value="Searching for Tilt Picos… they appear here when their Bluetooth beacon is heard." layout="col-center" />;
+  }
+  return picos.map((p) => {
+    const heard = p.heard === null ? 'not heard since restart' : `heard ${p.heard < 60 ? p.heard + ' s' : Math.round(p.heard / 60) + ' min'} ago, ${p.rssi} dBm`;
+    const light = p.enabled ? LIGHT[String(p.status)] : 'unknown';
+    const title = !p.enabled ? 'Off' : p.status === true ? 'Connected' : p.status === false ? 'Connection failed' : 'Connecting…';
+    return (
+      <Switch key={p.mac} checked={p.enabled} onChange={(v) => send('setPicoEnabled', { mac: p.mac, value: v })}
+        label={
+          <span className="pico-label" title={title}>
+            <span><span className={'ranger-light ' + light} />Tilt Pico {p.ip}</span>
+            <span className="pico-sub">{heard}</span>
+          </span>
+        } />
+    );
+  });
+}
+
 /** Range booster Tilt Pis, deletable like the calibration points (fixed height: 4 rows). */
 function RangerTable({ hosts, urls, status, onDelete }) {
   return (
@@ -126,6 +150,10 @@ export default function SystemTab({ state, statics, send }) {
         <TextInput label="Add Tilt Pi (ex. tiltpi-north)" value="" onCommit={(v) => send('addRangerHostname', { name: v })} />
         <RangerTable hosts={g.rangerHostnames ?? []} urls={state.rangerUrls} status={state.rangerStatus ?? {}}
           onDelete={(name) => send('removeRangerHostname', { name })} />
+      </Group>
+
+      <Group title="Boost Range with Tilt Pico's" key="pico">
+        <PicoList picos={state.picos ?? []} send={send} />
       </Group>
 
       <Group title="Raspberry Pi" key="pi">
