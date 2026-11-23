@@ -142,6 +142,14 @@ differences — everything else should be identical. `legacy/flow.json` is the s
   (Range Booster off). *Port fixes:* a bare name that doesn't resolve is retried as `<name>.local`;
   names are looked up outside the 5 s fetch timeout and cached 5 min; failed hosts are retried every
   30 s (legacy re-polled dead hosts every 2.5 s).
+- *Port addition (requested):* "Boost Range with Tilt Pico's" group (`server/src/pico.js`). Tilt
+  Picos advertise their IP as an iBeacon (uuid `a495bc02-c5b1-4b44-b512-1370f02d74de`, major/minor =
+  the four IPv4 octets; major 999 + minor 997–999 = setup/error states, ignored; LAN ranges only),
+  heard by our radio or via Range Booster Pis. Each discovered Pico is listed with a switch and a
+  status light; turned-on Picos are saved in `settings.tiltPicos` by Bluetooth MAC (IP follows the
+  beacon if DHCP changes it) and polled every 5 s with `GET http://<ip>/` (the Pico's Tilt list).
+  Entries are converted to our scan format (MAC with colons, tx_power as signed int8) and only fed
+  when their `timestamp` changed (the Pico keeps a Tilt listed 120 s after last hearing it).
 - *Port addition:* Dashboard Link group shows a "Local Name Check" light with a "Test & Reset Local
   Name" button. Every 5 min (first after 60 s) the app looks up its own `<hostname>.local`; if that
   fails it restarts avahi-daemon and checks again (`server/src/system/mdns.js`).
