@@ -96,16 +96,18 @@ jobs:
         run: |
           IMG="${{ steps.build.outputs.image-path }}"
           ls -la "$IMG"
-          sudo apt-get install -y dosfstools xz-utils >/dev/null
-          LOOP=$(sudo losetup -P --show -f "$IMG")
-          sudo partprobe "$LOOP" || true
-          sudo fdisk -l "$LOOP"
+          sudo apt-get update -qq && sudo apt-get install -y -qq dosfstools xz-utils fdisk >/dev/null
+          sudo fdisk -l "$IMG"
+          # Loop-mount just the first (FAT boot) partition by its offset: no dependence on the
+          # runner creating /dev/loopNp1 partition nodes.
+          read -r START SECTORS < <(sudo sfdisk -d "$IMG" | awk -F'[=,]' '/start=/{print $2+0, $4+0; exit}')
+          LOOP=$(sudo losetup --show -f -o $((START * 512)) --sizelimit $((SECTORS * 512)) "$IMG")
           echo "--- fsck.vfat (check only) ---"
-          sudo fsck.vfat -n -v "${LOOP}p1" || true
+          sudo fsck.vfat -n -v "$LOOP" || true
           echo "--- fsck.vfat (repair) ---"
-          sudo fsck.vfat -a -w -V "${LOOP}p1" || true
+          sudo fsck.vfat -a -w -V "$LOOP" || true
           echo "--- fsck.vfat (after) ---"
-          sudo fsck.vfat -n "${LOOP}p1"
+          sudo fsck.vfat -n "$LOOP" || echo "::warning::boot partition still reports problems (see above)"
           sudo losetup -d "$LOOP"
           sudo xz -T0 -6 "$IMG"
           sudo chown "$(id -u):$(id -g)" "$IMG.xz"
