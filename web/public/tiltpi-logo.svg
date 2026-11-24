@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="600" height="600">
   <title>Tilt Pi</title>
-  <!-- From "tilt logo 2 color.svg" and "pi.svg": white logo on black, pi in the top right corner. -->
-  <rect width="600" height="600" fill="#000000"/>
+  <!-- From "tilt logo 2 color.svg" and "pi.svg": white logo on the Tilt Pi toolbar grey (#666666), pi in the top right corner. -->
+  <rect width="600" height="600" fill="#666666"/>
   <g transform="translate(38.00,37.33)">
     <path d="m 327.66,2455.82 -258.8319,21.95 c 0,0 349.1839,59.06 129.3709,352.73 L 413.16,2685.27 Z" style="fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none" transform="matrix(0.13333333,0,0,-0.13333333,0,525.33333)" />
     <path d="m 509.141,2866.99 -243.911,89.18 c 0,0 352.469,-34.81 217.54,306.29 l 169.179,-196.6 z" style="fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none" transform="matrix(0.13333333,0,0,-0.13333333,0,525.33333)" />
