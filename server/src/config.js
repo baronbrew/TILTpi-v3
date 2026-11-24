@@ -1,9 +1,10 @@
 // Runtime configuration. Everything can be overridden with environment variables so the same
 // code runs on a Raspberry Pi (defaults) and on a development machine (see server/dev.env).
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const env = process.env;
-const here = import.meta.dirname;
+const here = path.dirname(fileURLToPath(import.meta.url)); // (import.meta.dirname needs Node 20.11; bookworm has 18)
 
 export const config = {
   port: Number(env.TILTPI_PORT || 1880),

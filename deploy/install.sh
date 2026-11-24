@@ -3,7 +3,7 @@
 # Also configures the local display (deploy/kiosk/setup.sh).
 set -euo pipefail
 APP="$(cd "$(dirname "$0")/.." && pwd)"
-if ! command -v node >/dev/null || [ "$(node -p 'process.versions.node.split(".")[0]')" -lt 20 ]; then
+if ! command -v node >/dev/null || [ "$(node -p 'process.versions.node.split(".")[0]')" -lt 18 ]; then
   sudo apt-get update && sudo apt-get install -y nodejs npm
 fi
 sudo apt-get install -y bluetooth bluez rfkill libbluetooth-dev libudev-dev build-essential git

@@ -11,6 +11,11 @@ scanning done in JavaScript (noble) instead of the Python `aioblescan` process.
 - `legacy/` – the original flow and SETUP page, used by the parity tests.
 - `deploy/` – systemd service, install and self-update scripts; `deploy/kiosk/` local-display launcher.
 - `dashboard/` – lightweight Tkinter display for low-memory Pis (Pi Zero W).
+- `image/` + `.github/workflows/build-images.yml` – SD card images built with pi-gen:
+  - `tiltpi-desktop-arm64`: Raspberry Pi OS trixie with desktop, 64-bit (Pi 3 and newer), Node.js from Debian.
+  - `tiltpi-lite-armhf`: Raspberry Pi OS (Legacy) bookworm Lite, 32-bit (Pi Zero W and newer), Node.js 22
+    ARMv6 build from unofficial-builds.nodejs.org (Raspbian's nodejs isn't reliable on ARMv6).
+  The server runs on Node.js 18 or newer.
 
 ## Develop (any OS)
 ```

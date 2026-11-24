@@ -1,6 +1,7 @@
-nodejs
-npm
 git
+curl
+xz-utils
+ca-certificates
 bluez
 rfkill
 libbluetooth-dev

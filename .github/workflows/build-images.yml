@@ -1,6 +1,6 @@
 # Builds the two Tilt Pi SD card images with pi-gen:
 #   tiltpi-desktop-arm64  Raspberry Pi OS with desktop, 64-bit (Pi 3 and newer) + Chromium kiosk
-#   tiltpi-lite-armhf     Raspberry Pi OS Lite, 32-bit (Pi Zero W and newer) + Tkinter/Chromium display
+#   tiltpi-lite-armhf     Raspberry Pi OS (Legacy) Lite, bookworm 32-bit (Pi Zero W and newer) + Tkinter/Chromium display
 # Runs on version tags (v*) and on demand. Tagged builds attach the images to the GitHub release.
 name: Build SD card images
 
@@ -29,8 +29,8 @@ jobs:
         env:
           CHOICE: ${{ inputs.images || 'both' }}
         run: |
-          desktop='{"name":"tiltpi-desktop-arm64","pi-gen-version":"arm64","stage-list":"stage0 stage1 stage2 stage3 stage4 ./image/stage-tiltpi"}'
-          lite='{"name":"tiltpi-lite-armhf","pi-gen-version":"master","stage-list":"stage0 stage1 stage2 ./image/stage-tiltpi"}'
+          desktop='{"name":"tiltpi-desktop-arm64","pi-gen-version":"arm64","release":"trixie","stage-list":"stage0 stage1 stage2 stage3 stage4 ./image/stage-tiltpi"}'
+          lite='{"name":"tiltpi-lite-armhf","pi-gen-version":"bookworm","release":"bookworm","stage-list":"stage0 stage1 stage2 ./image/stage-tiltpi"}'
           case "$CHOICE" in
             desktop*) list="$desktop" ;;
             lite*) list="$lite" ;;
@@ -59,11 +59,11 @@ jobs:
           sudo docker image prune --all --force || true
           df -h /
 
-      # pi-gen master builds armhf inside an i386 Debian container. Build that container here
-      # first (same Dockerfile, so pi-gen reuses the cached layer) to retry Debian mirror
+      # pi-gen builds armhf inside an i386 Debian container. Build that container here first
+      # (same Dockerfile and base, so pi-gen reuses the cached layer) to retry Debian mirror
       # hiccups and show apt's real error output if it fails.
       - name: Pre-build pi-gen container
-        if: ${{ matrix.pi-gen-version == 'master' }}
+        if: ${{ endsWith(matrix.name, 'armhf') }}
         run: |
           # The i386 build container has failed with "Temporary failure resolving
           # 'deb.debian.org'", so give Docker explicit DNS servers.
@@ -71,14 +71,14 @@ jobs:
           sudo systemctl restart docker
           grep PRETTY_NAME /etc/os-release
           # Fail fast with a clear message if 32-bit containers can't resolve names.
-          if ! docker run --rm --platform linux/386 docker.io/i386/debian:trixie getent hosts deb.debian.org; then
+          if ! docker run --rm --platform linux/386 docker.io/i386/debian:${{ matrix.release }} getent hosts deb.debian.org; then
             echo "::error::i386 containers can't resolve DNS on this runner image; pi-gen's armhf build can't run here"
             exit 1
           fi
-          git clone --depth 1 https://github.com/RPi-Distro/pi-gen.git /tmp/pi-gen-prebuild
+          git clone --depth 1 --branch ${{ matrix.pi-gen-version }} https://github.com/RPi-Distro/pi-gen.git /tmp/pi-gen-prebuild
           for i in 1 2 3; do
             docker build --progress=plain --platform linux/386 \
-              --build-arg BASE_IMAGE=docker.io/i386/debian:trixie \
+              --build-arg BASE_IMAGE=i386/debian:${{ matrix.release }} \
               -t pi-gen /tmp/pi-gen-prebuild && exit 0
             echo "docker build attempt $i failed; retrying in 60 s"; sleep 60
           done
@@ -96,7 +96,7 @@ jobs:
         with:
           image-name: ${{ matrix.name }}
           pi-gen-version: ${{ matrix.pi-gen-version }}
-          release: trixie
+          release: ${{ matrix.release }}
           stage-list: ${{ matrix.stage-list }}
           hostname: tiltpi
           username: pi

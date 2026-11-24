@@ -31,7 +31,11 @@ if [ -f /usr/share/wayland-sessions/rpd-labwc.desktop ]; then
 else
   as_root apt-get install -y --no-install-recommends xserver-xorg xinit openbox unclutter x11-xserver-utils python3-tk
   TOTAL_RAM=$(free -m | awk '/^Mem:/{print $2}')
-  if [ "$TOTAL_RAM" -gt 600 ]; then as_root apt-get install -y --no-install-recommends chromium; fi
+  if [ "$TOTAL_RAM" -gt 600 ]; then
+    # Bookworm-era Raspbian archives may only have the older package name.
+    as_root apt-get install -y --no-install-recommends chromium ||
+      as_root apt-get install -y --no-install-recommends chromium-browser
+  fi
   PROFILE="$USER_HOME/.bash_profile"
   touch "$PROFILE"
   sed -i "/$MARK/d" "$PROFILE"
