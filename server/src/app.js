@@ -551,12 +551,10 @@ export class TiltPiApp extends EventEmitter {
       await sys.shutdown();
     },
     async btFix() {
-      await sys.btStabilityFix();
-      this.#restartNeeded();
+      this.#btFixResult(await sys.btStabilityFix());
     },
     async btRevert() {
-      await sys.btStabilityRevert();
-      this.#restartNeeded();
+      this.#btFixResult(await sys.btStabilityRevert());
     },
     setRangeBoost({ value }) {
       this.rangeBoost.setEnabled(!!value);
@@ -587,6 +585,15 @@ export class TiltPiApp extends EventEmitter {
       this.toast({ topic: 'Alert', message: 'Restart to Enable New Settings' });
     },
   };
+
+  /** BT Stability Fix / Revert: config.txt written → restart needed; failed → say so. */
+  #btFixResult(r) {
+    if (r.code === 0) this.#restartNeeded();
+    else {
+      console.warn('[bt-fix] config.txt not changed:', r.stderr.trim());
+      this.toast({ topic: 'Alert', message: 'Could not change the Bluetooth setting: ' + r.stderr.trim() });
+    }
+  }
 
   #restartNeeded() {
     this.toast({ topic: 'Restart Needed', message: 'Click restart to save changes.' });

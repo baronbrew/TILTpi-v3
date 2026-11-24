@@ -154,8 +154,12 @@ differences — everything else should be identical. `legacy/flow.json` is the s
   Name" button. Every 5 min (first after 60 s) the app looks up its own `<hostname>.local`; if that
   fails it restarts avahi-daemon and checks again (`server/src/system/mdns.js`).
 - Raspberry Pi: Screen Auto Off (Never/1 min/10 min/2 h/8 h/16 h), Screen Zoom 0.5–3
-  (toast "Restart to Enable New Settings"), BT stability fix / revert for RPi3 (btuart baud),
-  Restart, Shutdown. **CHANGED**: instead of `sed`-editing `~/xinitrc_chromium.sh` / LXDE autostart, the app
+  (toast "Restart to Enable New Settings"), BT stability fix / revert for RPi3, Restart, Shutdown. **CHANGED** (BT fix): legacy `sed`-edited
+  `/usr/bin/btuart` (hciattach `921600 noflow` → `115200 noflow`). From bookworm the kernel attaches
+  Bluetooth itself (`hci_uart_bcm`, 3,000,000 baud on a Pi 3B+/4) and btuart never runs, so that edit did
+  nothing. The fix now adds `dtparam=krnbt_baudrate=115200` (in a marked `[all]` block) to
+  `/boot/firmware/config.txt`; revert removes it; both need a restart. Only bookworm and later are
+  supported. **CHANGED** (screen): instead of `sed`-editing `~/xinitrc_chromium.sh` / LXDE autostart, the app
   writes `<data>/kiosk.conf` (`ZOOM`, `SCREEN_OFF`), read by `deploy/kiosk/` at session start.
 
 ## 9b. Local display (from the current Lite image, `~/launch_kiosk.sh`)

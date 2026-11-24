@@ -3,6 +3,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { config } from '../config.js';
 import { run, query } from './run.js';
 
 export const HOSTNAME_RE =
@@ -47,11 +48,45 @@ export function setSystemTime(text) {
 export const reboot = () => run('reboot', [], { sudo: true });
 export const shutdown = () => run('shutdown', ['now'], { sudo: true });
 
-// ---- Bluetooth UART baud fix for RPi3 ----
-export const btStabilityFix = () =>
-  run('sed', ['-i', 's/921600 noflow/115200 noflow/g', '/usr/bin/btuart'], { sudo: true });
-export const btStabilityRevert = () =>
-  run('sed', ['-i', 's/115200 noflow/921600 noflow/g', '/usr/bin/btuart'], { sudo: true });
+// ---- Bluetooth stability fix (slower Bluetooth UART) ----
+// Legacy edited /usr/bin/btuart (hciattach 921600 → 115200 baud). From bookworm the kernel attaches
+// Bluetooth itself (hci_uart_bcm, ~3,000,000 baud) and btuart never runs, so the same fix is now the
+// firmware's krnbt_baudrate parameter in config.txt (takes effect after a restart).
+export const BT_FIX_MARK = '# Tilt Pi: BT Stability Fix (slower Bluetooth UART, see System tab)';
+export const BT_FIX_LINE = 'dtparam=krnbt_baudrate=115200';
+
+/** config.txt text with the fix block added (on) or removed (off). Pure; other lines kept as is. */
+export function withBtStabilityFix(text, on) {
+  let out = String(text).replace(/\r\n/g, '\n');
+  // Our block (added under its own [all] so it applies whatever section the file ends in).
+  out = out.replace(/\n*\[all\]\n# Tilt Pi: BT Stability Fix[^\n]*\n(?:dtparam=krnbt_baudrate=[^\n]*\n?)?/g, '\n');
+  out = out.replace(/^[ \t]*dtparam=krnbt_baudrate=[^\n]*\n?/gm, ''); // any other krnbt_baudrate line
+  out = out.replace(/\n*$/, '\n');
+  if (on) out += `\n[all]\n${BT_FIX_MARK}\n${BT_FIX_LINE}\n`;
+  return out;
+}
+
+async function setBtStabilityFix(on) {
+  const file = path.join(config.bootDir, 'config.txt');
+  let text;
+  try {
+    text = fs.readFileSync(file, 'utf8');
+  } catch (err) {
+    return { code: 1, stdout: '', stderr: `can't read ${file}: ${err.message}` };
+  }
+  const next = withBtStabilityFix(text, on);
+  if (next === text.replace(/\r\n/g, '\n')) return { code: 0, stdout: 'unchanged', stderr: '' };
+  // config.txt is root's (boot partition): write a copy, then sudo cp it into place.
+  const tmp = path.join(os.tmpdir(), `tiltpi-config-${process.pid}.txt`);
+  fs.writeFileSync(tmp, next);
+  try {
+    return await run('cp', [tmp, file], { sudo: true });
+  } finally {
+    fs.rmSync(tmp, { force: true });
+  }
+}
+export const btStabilityFix = () => setBtStabilityFix(true);
+export const btStabilityRevert = () => setBtStabilityFix(false);
 
 // ---- hostname / links ----
 export function getHostname() {
