@@ -57,8 +57,9 @@ export default function App() {
           <Icon name="menu" size={24} />
         </button>
         <h1>{TABS[tab].name}</h1>
-        {/* Main page: the Tilt Pi logo centered in the toolbar (its grey matches the toolbar). */}
-        {tab === 0 && <img className="toolbar-logo" src={`${import.meta.env.BASE_URL}tiltpi-logo.svg`} alt="" />}
+        {/* Tilt Pi logo centered in the toolbar on every page (its grey matches the toolbar), so
+            screenshots sent for support show at a glance they're from this Tilt Pi app. */}
+        <img className="toolbar-logo" src={`${import.meta.env.BASE_URL}tiltpi-logo.svg`} alt="" />
         {!connected && <span className="offline">reconnecting…</span>}
       </header>
 
