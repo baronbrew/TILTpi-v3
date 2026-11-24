@@ -361,14 +361,15 @@ class Dashboard(tk.Tk):
         bar.pack_propagate(False)
         tk.Label(bar, text="☰", font=self.f_title, bg=TOOLBAR_BG,
                  fg="#ffffff").pack(side="left", padx=(14, 8))
-        # Tilt Pi logo (its grey matches the toolbar); the name as text if it can't be loaded.
+        tk.Label(bar, text=SITE_NAME, font=self.f_title, bg=TOOLBAR_BG,
+                 fg="#ffffff").pack(side="left")
+        # Tilt Pi logo centered in the toolbar (its grey matches the toolbar).
         try:
             self.logo = tk.PhotoImage(file=os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                                         "tiltpi-logo-44.png"))
-            tk.Label(bar, image=self.logo, bg=TOOLBAR_BG, bd=0).pack(side="left")
+            tk.Label(bar, image=self.logo, bg=TOOLBAR_BG, bd=0).place(relx=0.5, rely=0.5, anchor="center")
         except (tk.TclError, OSError):
-            tk.Label(bar, text=SITE_NAME, font=self.f_title, bg=TOOLBAR_BG,
-                     fg="#ffffff").pack(side="left")
+            pass  # no logo: just the name
         self.status = tk.Label(bar, text="starting…", font=self.f_status,
                               bg=TOOLBAR_BG, fg="#ffffff")
         self.status.pack(side="right", padx=14)

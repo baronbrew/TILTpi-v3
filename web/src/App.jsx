@@ -56,14 +56,9 @@ export default function App() {
         <button type="button" className="menu-btn" aria-label="Toggle menu" onClick={() => setMenuOpen((o) => !o)}>
           <Icon name="menu" size={24} />
         </button>
-        {/* Main page: the Tilt Pi logo (its grey matches the toolbar); other pages keep their title. */}
-        <h1>
-          {tab === 0 ? (
-            <img className="toolbar-logo" src={`${import.meta.env.BASE_URL}tiltpi-logo.svg`} alt="Tilt Pi" />
-          ) : (
-            TABS[tab].name
-          )}
-        </h1>
+        <h1>{TABS[tab].name}</h1>
+        {/* Main page: the Tilt Pi logo centered in the toolbar (its grey matches the toolbar). */}
+        {tab === 0 && <img className="toolbar-logo" src={`${import.meta.env.BASE_URL}tiltpi-logo.svg`} alt="" />}
         {!connected && <span className="offline">reconnecting…</span>}
       </header>
 
