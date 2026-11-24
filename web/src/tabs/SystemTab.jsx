@@ -32,23 +32,32 @@ const LIGHT = { true: 'ok', false: 'fail', undefined: 'unknown' };
 const LIGHT_TITLE = { true: 'Connected', false: 'Connection failed', undefined: 'Not checked (Range Booster off)' };
 
 /**
- * Tilt Picos found by their IP beacon; each has an on/off switch. On = polled every 5 s for the
- * Tilts it hears. Light: green connected, red failed, grey off / not polled yet.
+ * Tilt Picos found by their IP beacon (saved by Bluetooth MAC with their last good IP); each has an
+ * on/off switch. On = polled every 5 s for the Tilts it hears. Light: green connected, red failed,
+ * grey off / not polled yet. Picos that are off can be forgotten (X).
  */
 function PicoList({ picos, send }) {
   if (!picos.length) {
     return <Text value="Searching for Tilt Picos… they appear here when their Bluetooth beacon is heard." layout="col-center" />;
   }
   return picos.map((p) => {
-    const heard = p.heard === null ? 'last known address, not heard since restart' : `heard ${p.heard < 60 ? p.heard + ' s' : Math.round(p.heard / 60) + ' min'} ago, ${p.rssi} dBm`;
+    const heard = p.heard === null
+      ? (p.ip ? 'last known address, not heard since restart' : 'address unknown, waiting for its beacon')
+      : `heard ${p.heard < 60 ? p.heard + ' s' : Math.round(p.heard / 60) + ' min'} ago, ${p.rssi} dBm`;
     const light = p.enabled ? LIGHT[String(p.status)] : 'unknown';
-    const title = !p.enabled ? 'Off' : p.status === true ? 'Connected' : p.status === false ? 'Connection failed' : 'Connecting…';
+    const title = !p.enabled ? 'Off' : p.status === true ? 'Connected' : p.status === false ? p.problem : 'Connecting…';
     return (
       <Switch key={p.mac} checked={p.enabled} onChange={(v) => send('setPicoEnabled', { mac: p.mac, value: v })}
         label={
-          <span className="pico-label" title={title}>
-            <span><span className={'ranger-light ' + light} />Tilt Pico {p.ip}</span>
-            <span className="pico-sub">{heard}</span>
+          <span className="pico-label" title={`${title} (Bluetooth ${p.mac})`}>
+            <span>
+              {!p.enabled && (
+                <button type="button" className="cal-del pico-forget" title="Forget this Tilt Pico"
+                  onClick={(e) => { e.stopPropagation(); send('forgetPico', { mac: p.mac }); }}>X</button>
+              )}
+              <span className={'ranger-light ' + light} />Tilt Pico {p.ip ?? ''}
+            </span>
+            <span className="pico-sub">{p.problem ?? heard}</span>
           </span>
         } />
     );

@@ -16,6 +16,11 @@ export class NobleScanner extends EventEmitter {
   }
 
   async start() {
+    // Report every advertising report. Without this, once a scannable device (the Tilt Pico's IP
+    // beacon is ADV_SCAN_IND) has answered one scan request, noble only reports its rare scan
+    // responses: the Pico was then "heard" every few minutes instead of every second, until a
+    // restart. Tilts (non-connectable) were never affected. Must be set before noble loads.
+    process.env.NOBLE_REPORT_ALL_HCI_EVENTS ??= '1';
     const mod = await import('@abandonware/noble');
     this.noble = mod.default ?? mod;
     this.noble.on('stateChange', (state) => {

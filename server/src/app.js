@@ -562,6 +562,9 @@ export class TiltPiApp extends EventEmitter {
     setPicoEnabled({ mac, value }) {
       if (!this.picos.setEnabled(mac, !!value)) this.toast({ topic: 'Alert', message: 'Tilt Pico address not known yet' });
     },
+    forgetPico({ mac }) {
+      if (!this.picos.forget(mac)) this.toast({ topic: 'Alert', message: 'Turn the Tilt Pico off before removing it' });
+    },
     toggleRangerHostname({ name }) {
       this.rangeBoost.toggleHostname(String(name ?? '').trim());
     },

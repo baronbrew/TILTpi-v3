@@ -167,6 +167,7 @@ a { color: white; text-decoration: none; }
   background: var(--danger-bg); color: #fff; border: 0; min-width: 56px; height: 34px; cursor: pointer;
   box-shadow: 0 1px 3px rgba(0,0,0,.4);
 }
+.cal-del.pico-forget { min-width: 0; width: 24px; height: 22px; padding: 0; margin-right: 6px; font-size: 12px; }
 
 /* ---------- Tilt cards (legacy ui_template) ---------- */
 /* Height follows the content; bottom padding makes the bottom gap match the top (border + 6px

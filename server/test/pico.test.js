@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { PicoBooster, picoIpFromBeacon, isPicoUuid, scanFromPico } from '../src/pico.js';
+import { PicoBooster, picoIpFromBeacon, isPicoUuid, scanFromPico, bluetoothMacFromWifi } from '../src/pico.js';
 
 test('IP address decoded from the beacon major/minor (as the Tilt app does)', () => {
   assert.equal(picoIpFromBeacon(49320, 48), '192.168.0.48'); // seen from tiltpi-office's /tiltscan
@@ -14,11 +14,16 @@ test('IP address decoded from the beacon major/minor (as the Tilt app does)', ()
   assert.ok(!isPicoUuid('a495bb10c5b14b44b5121370f02d74de'));
 });
 
-function setup(responses) {
+function setup(responses, info = null) {
   const settings = { global: { tiltPicos: {} }, setGlobal(p) { Object.assign(this.global, p); } };
   const fed = [];
   const urls = [];
   const fetchImpl = async (url) => {
+    if (url.endsWith('/info')) {
+      // info: WiFi MAC the device at that address reports (null = firmware without /info).
+      const mac = typeof info === 'function' ? info(url) : info;
+      return mac ? new Response(JSON.stringify({ tilt_pico_mac_address: mac })) : new Response('', { status: 404 });
+    }
     urls.push(url);
     const body = responses.shift();
     if (body instanceof Error) throw body;
@@ -72,7 +77,7 @@ test('a discovered Pico is saved with its last good IP: listed and usable after 
 
   // Restart: same saved settings, beacon not heard (yet).
   const urls = [];
-  const fetchImpl = async (url) => { urls.push(url); return new Response('[]'); };
+  const fetchImpl = async (url) => { if (!url.endsWith('/info')) urls.push(url); return new Response(url.endsWith('/info') ? '' : '[]', { status: url.endsWith('/info') ? 404 : 200 }); };
   const p2 = new PicoBooster({ settings, onScan: () => {}, fetchImpl });
   assert.deepEqual(p2.list().map((x) => [x.mac, x.ip, x.enabled, x.heard]), [['aa:02', '192.168.0.48', false, null]]);
   assert.equal(p2.setEnabled('aa:02', true), true); // turned on from the saved IP
@@ -83,4 +88,58 @@ test('a discovered Pico is saved with its last good IP: listed and usable after 
   p2.noteBeacon({ uuid: 'a495bc02c5b14b44b5121370f02d74de', major: 49320, minor: 60, rssi: -60, mac: 'aa:02' });
   assert.equal(settings.global.knownPicos['aa:02'].ip, '192.168.0.60');
   assert.equal(settings.global.tiltPicos['aa:02'].ip, '192.168.0.60');
+});
+
+const beacon = (mac, minor) => ({ uuid: 'a495bc02c5b14b44b5121370f02d74de', major: 49320, minor, rssi: -60, mac });
+
+test('Bluetooth MAC from the Pico W WiFi MAC (+1, as on the real Pico)', () => {
+  assert.equal(bluetoothMacFromWifi('28:CD:C1:0D:B8:30'), '28:cd:c1:0d:b8:31');
+  assert.equal(bluetoothMacFromWifi('28:cd:c1:0d:b8:ff'), '28:cd:c1:0d:b9:00');
+  assert.equal(bluetoothMacFromWifi('nonsense'), null);
+});
+
+test('the device at the saved IP is checked: the right Pico is used and its WiFi MAC saved', async () => {
+  const { p, settings, fed } = setup([[tilt(100)]], '28:CD:C1:0D:B8:30');
+  p.noteBeacon(beacon('28:cd:c1:0d:b8:31', 48));
+  p.setEnabled('28:cd:c1:0d:b8:31', true);
+  await settle();
+  assert.equal(fed.length, 1);
+  assert.equal(settings.global.knownPicos['28:cd:c1:0d:b8:31'].wifiMac, '28:cd:c1:0d:b8:30');
+});
+
+test('another device at a saved Pico address: no readings, address dropped until its beacon', async () => {
+  const { p, settings, fed, urls } = setup([[tilt(100)]], 'aa:aa:aa:aa:aa:aa');
+  settings.global.knownPicos = { '28:cd:c1:0d:b8:31': { ip: '192.168.0.48', wifiMac: '28:cd:c1:0d:b8:30' } };
+  settings.global.tiltPicos = { '28:cd:c1:0d:b8:31': { ip: '192.168.0.48' } };
+  p.pollAll();
+  await settle();
+  assert.equal(fed.length, 0);
+  assert.equal(urls.length, 0); // its Tilt list was never read
+  assert.equal(settings.global.tiltPicos['28:cd:c1:0d:b8:31'].ip, null);
+  const row = p.list()[0];
+  assert.equal(row.status, false);
+  assert.match(row.problem, /Another device/);
+  p.noteBeacon(beacon('28:cd:c1:0d:b8:31', 77)); // heard again at a new address
+  assert.equal(settings.global.tiltPicos['28:cd:c1:0d:b8:31'].ip, '192.168.0.77');
+  assert.equal(p.list()[0].problem, null);
+});
+
+test('no two Picos share an address: the one whose beacon claims it keeps it', () => {
+  const { p, settings } = setup([]);
+  p.noteBeacon(beacon('aa:00:00:00:00:01', 48));
+  p.noteBeacon(beacon('aa:00:00:00:00:02', 48)); // DHCP gave the old Pico's address to a new one
+  assert.equal(settings.global.knownPicos['aa:00:00:00:00:01'].ip, null);
+  assert.equal(settings.global.knownPicos['aa:00:00:00:00:02'].ip, '192.168.0.48');
+  assert.deepEqual(p.list().map((x) => [x.mac, x.ip]), [['aa:00:00:00:00:02', '192.168.0.48'], ['aa:00:00:00:00:01', null]]);
+});
+
+test('forget removes a Pico that is off; one that is on is kept', () => {
+  const { p, settings } = setup([[]]);
+  p.noteBeacon(beacon('aa:00:00:00:00:01', 48));
+  p.noteBeacon(beacon('aa:00:00:00:00:02', 49));
+  p.setEnabled('aa:00:00:00:00:02', true);
+  assert.equal(p.forget('aa:00:00:00:00:02'), false);
+  assert.equal(p.forget('aa:00:00:00:00:01'), true);
+  assert.deepEqual(Object.keys(settings.global.knownPicos), ['aa:00:00:00:00:02']);
+  assert.deepEqual(p.list().map((x) => x.mac), ['aa:00:00:00:00:02']);
 });
