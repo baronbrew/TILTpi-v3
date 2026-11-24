@@ -7,6 +7,8 @@ Wants=network-online.target
 User=pi
 WorkingDirectory=/home/pi/TILTpi-v3/server
 EnvironmentFile=-/etc/default/locale
+# Same heap cap Node-RED used: keeps Node from growing into swap on 512 MB Pis (Zero W, 3A+).
+Environment=NODE_OPTIONS=--max-old-space-size=256
 # Fresh images soft-block Bluetooth; "+" runs this one step as root.
 ExecStartPre=+-/usr/sbin/rfkill unblock bluetooth
 ExecStart=/usr/bin/node src/index.js

@@ -13,8 +13,8 @@ scanning done in JavaScript (noble) instead of the Python `aioblescan` process.
 - `dashboard/` – lightweight Tkinter display for low-memory Pis (Pi Zero W).
 - `image/` + `.github/workflows/build-images.yml` – SD card images built with pi-gen:
   - `tiltpi-desktop-arm64`: Raspberry Pi OS trixie with desktop, 64-bit (Pi 3 and newer), Node.js from Debian.
-  - `tiltpi-lite-armhf`: Raspberry Pi OS (Legacy) bookworm Lite, 32-bit (Pi Zero W and newer), Node.js 22
-    ARMv6 build from unofficial-builds.nodejs.org (Raspbian's nodejs isn't reliable on ARMv6).
+  - `tiltpi-lite-armhf`: Raspberry Pi OS (Legacy) bookworm Lite, 32-bit (Pi Zero W and newer), Node.js 18.20.8
+    ARMv6 build from unofficial-builds.nodejs.org (the version the Node-RED Tilt Pi ran on the Pi Zero W).
   The server runs on Node.js 18 or newer.
 
 ## Develop (any OS)

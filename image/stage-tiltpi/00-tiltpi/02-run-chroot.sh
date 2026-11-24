@@ -4,15 +4,13 @@
 APP="/home/${FIRST_USER_NAME}/TILTpi-v3"
 
 # Node.js. armhf (the Lite image, Pi Zero W and newer): Node.js's ARMv6 build from
-# unofficial-builds.nodejs.org, the same source Node-RED's installer uses on a Pi Zero; the
-# Raspbian nodejs package isn't reliable on ARMv6. It runs on every 32-bit Pi. arm64: Debian's.
-NODE_MAJOR=22
+# unofficial-builds.nodejs.org, pinned to the version running on the known-good bookworm Tilt Pi
+# (installed by Node-RED's installer); the Zero W never started the server with Node 20/22.
+# It runs on every 32-bit Pi. arm64: Debian's nodejs.
+NODE_ARMV6_VERSION=v18.20.8
 if [ "$(dpkg --print-architecture)" = armhf ]; then
   DIST=https://unofficial-builds.nodejs.org/download/release
-  VER=$(curl -fsSL --retry 3 "$DIST/index.json" | python3 -c "
-import sys, json
-print(next(r['version'] for r in json.load(sys.stdin)
-           if r['version'].startswith('v${NODE_MAJOR}.') and 'linux-armv6l' in r['files']))")
+  VER=$NODE_ARMV6_VERSION
   TARBALL="node-$VER-linux-armv6l.tar.xz"
   TMP=$(mktemp -d)
   curl -fsSL --retry 3 -o "$TMP/$TARBALL" "$DIST/$VER/$TARBALL"
