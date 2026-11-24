@@ -55,6 +55,12 @@ export function createServer(app, config) {
     else res.status(503).send('Dashboard not built. Run "npm run build" in web/.');
   });
   ex.get('/', (_req, res) => res.redirect('/ui/'));
+  // Browsers ask for /favicon.ico on pages outside /ui (e.g. /log.csv).
+  ex.get('/favicon.ico', (_req, res) => {
+    const icon = path.join(config.webDir, 'favicon.ico');
+    if (fs.existsSync(icon)) res.sendFile(icon, { maxAge: '1d' });
+    else res.status(404).end();
+  });
 
   const server = http.createServer(ex);
   attachWebSocket(server, app);
