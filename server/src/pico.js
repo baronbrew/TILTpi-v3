@@ -15,7 +15,6 @@
 export const PICO_UUID = 'a495bc02c5b14b44b5121370f02d74de';
 export const POLL_MS = 5000;
 const FETCH_TIMEOUT_MS = 4500; // the Pico scans ~1-2 s before answering
-const FORGET_UNSEEN_MS = 10 * 60000; // discovered but not turned on: drop after 10 min unseen
 
 /** Pico list entry → the scan format our radio produces (mac "aa:bb:..", tx_power signed int8). */
 export function scanFromPico(e) {
@@ -48,6 +47,8 @@ export class PicoBooster {
     this.fetch = fetchImpl;
     this.now = now;
     this.seen = new Map(); // mac -> { mac, ip, rssi, lastSeen }   (beacons heard this run)
+    // Every Pico ever discovered is saved with its last good IP (settings.global.knownPicos), so
+    // the list keeps it, and it can be turned on, even when its beacon isn't being heard.
     this.status = {}; // mac -> true (last poll answered) / false (failed)
     this.lastTimestamp = new Map(); // `${mac}|${tiltMac}|${uuid}` -> Pico entry timestamp
     this.busy = new Set();
@@ -57,6 +58,11 @@ export class PicoBooster {
   /** Saved Picos that are turned on: { [mac]: { ip } } */
   get enabled() {
     return this.settings.global.tiltPicos ?? {};
+  }
+
+  /** Every Pico discovered so far, with its last good IP: { [mac]: { ip } } */
+  get known() {
+    return this.settings.global.knownPicos ?? {};
   }
 
   start() {
@@ -84,6 +90,10 @@ export class PicoBooster {
       this.settings.setGlobal({ tiltPicos: { ...this.enabled, [mac]: { ...saved, ip } } });
       console.log(`[pico] ${mac} moved to ${ip}`);
     }
+    if (this.known[mac]?.ip !== ip) {
+      if (!this.known[mac]) console.log(`[pico] discovered ${mac} at ${ip}`);
+      this.settings.setGlobal({ knownPicos: { ...this.known, [mac]: { ip } } });
+    }
     if (!prev || prev.ip !== ip) this.onChange();
   }
 
@@ -91,7 +101,7 @@ export class PicoBooster {
     mac = String(mac).toLowerCase();
     const list = { ...this.enabled };
     if (on) {
-      const ip = this.seen.get(mac)?.ip ?? list[mac]?.ip;
+      const ip = this.seen.get(mac)?.ip ?? list[mac]?.ip ?? this.known[mac]?.ip;
       if (!ip) return false;
       list[mac] = { ip };
     } else {
@@ -103,21 +113,17 @@ export class PicoBooster {
     return true;
   }
 
-  /** For the System tab: discovered and saved Picos, newest IP first. */
+  /** For the System tab: every Pico discovered (saved) or heard, by IP. */
   list() {
     const now = this.now();
-    const macs = new Set(Object.keys(this.enabled));
-    for (const [mac, s] of this.seen) {
-      if (macs.has(mac) || now - s.lastSeen < FORGET_UNSEEN_MS) macs.add(mac);
-      else this.seen.delete(mac);
-    }
+    const macs = new Set([...Object.keys(this.known), ...Object.keys(this.enabled), ...this.seen.keys()]);
     return [...macs]
       .map((mac) => {
         const s = this.seen.get(mac);
         const saved = this.enabled[mac];
         return {
           mac,
-          ip: s?.ip ?? saved?.ip,
+          ip: s?.ip ?? saved?.ip ?? this.known[mac]?.ip,
           enabled: !!saved,
           status: saved ? this.status[mac] : undefined, // true / false / undefined (not polled yet)
           heard: s ? Math.round((now - s.lastSeen) / 1000) : null, // seconds since beacon, null = not this run

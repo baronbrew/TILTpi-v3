@@ -64,3 +64,23 @@ test('Pico entries converted to our scan format (real Pico 1009 response)', () =
   assert.deepEqual(scanFromPico(e), { uuid: 'a495bb40c5b14b44b5121370f02d74de', major: 999, minor: 1005, tx_power: -103, rssi: -76, mac: 'f7:fe:cc:28:94:8f' });
   assert.equal(scanFromPico({ ...e, tx_power: -59 }).tx_power, -59);
 });
+
+test('a discovered Pico is saved with its last good IP: listed and usable after a restart without its beacon', async () => {
+  const { p, settings } = setup([]);
+  p.noteBeacon({ uuid: 'a495bc02c5b14b44b5121370f02d74de', major: 49320, minor: 48, rssi: -60, mac: 'AA:02' });
+  assert.deepEqual(settings.global.knownPicos, { 'aa:02': { ip: '192.168.0.48' } });
+
+  // Restart: same saved settings, beacon not heard (yet).
+  const urls = [];
+  const fetchImpl = async (url) => { urls.push(url); return new Response('[]'); };
+  const p2 = new PicoBooster({ settings, onScan: () => {}, fetchImpl });
+  assert.deepEqual(p2.list().map((x) => [x.mac, x.ip, x.enabled, x.heard]), [['aa:02', '192.168.0.48', false, null]]);
+  assert.equal(p2.setEnabled('aa:02', true), true); // turned on from the saved IP
+  await settle();
+  assert.equal(urls[0], 'http://192.168.0.48/');
+
+  // A new address from the beacon replaces the saved one.
+  p2.noteBeacon({ uuid: 'a495bc02c5b14b44b5121370f02d74de', major: 49320, minor: 60, rssi: -60, mac: 'aa:02' });
+  assert.equal(settings.global.knownPicos['aa:02'].ip, '192.168.0.60');
+  assert.equal(settings.global.tiltPicos['aa:02'].ip, '192.168.0.60');
+});

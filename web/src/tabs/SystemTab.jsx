@@ -40,7 +40,7 @@ function PicoList({ picos, send }) {
     return <Text value="Searching for Tilt Picos… they appear here when their Bluetooth beacon is heard." layout="col-center" />;
   }
   return picos.map((p) => {
-    const heard = p.heard === null ? 'not heard since restart' : `heard ${p.heard < 60 ? p.heard + ' s' : Math.round(p.heard / 60) + ' min'} ago, ${p.rssi} dBm`;
+    const heard = p.heard === null ? 'last known address, not heard since restart' : `heard ${p.heard < 60 ? p.heard + ' s' : Math.round(p.heard / 60) + ' min'} ago, ${p.rssi} dBm`;
     const light = p.enabled ? LIGHT[String(p.status)] : 'unknown';
     const title = !p.enabled ? 'Off' : p.status === true ? 'Connected' : p.status === false ? 'Connection failed' : 'Connecting…';
     return (

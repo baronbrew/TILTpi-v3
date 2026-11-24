@@ -150,6 +150,9 @@ differences — everything else should be identical. `legacy/flow.json` is the s
   beacon if DHCP changes it) and polled every 5 s with `GET http://<ip>/` (the Pico's Tilt list).
   Entries are converted to our scan format (MAC with colons, tx_power as signed int8) and only fed
   when their `timestamp` changed (the Pico keeps a Tilt listed 120 s after last hearing it).
+  Every Pico discovered is saved with its last good IP (`knownPicos` in settings.json) and stays in
+  the list, so it can be turned on and is polled at that address even while its beacon isn't heard;
+  a new address from its beacon replaces the saved one.
 - *Port addition:* Dashboard Link group shows a "Local Name Check" light with a "Test & Reset Local
   Name" button. Every 5 min (first after 60 s) the app looks up its own `<hostname>.local`; if that
   fails it restarts avahi-daemon and checks again (`server/src/system/mdns.js`).
