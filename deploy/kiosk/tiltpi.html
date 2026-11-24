@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Checking Tilt Pi Server Status...</title>
+    <link rel="icon" type="image/svg+xml" href="tiltpi-logo.svg">
     
     <style>
         body {
@@ -14,33 +15,32 @@
             min-height: 100vh;
             margin: 0;
             font-family: Arial, sans-serif;
-            background-color: #f0f0f0;
+            background-color: #000;
         }
         
         .status-message {
             margin-top: 20px;
             font-size: 1.2em;
-            color: #333;
+            color: #ddd;
         }
         
         .error {
-            color: red;
+            color: #ff5a5a;
             font-weight: bold;
         }
         
         .full-screen-image {
-            max-width: 90%;
-            max-height: 70vh;
+            width: min(90vw, 70vh);
+            height: min(90vw, 70vh);
             display: block;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
     </style>
 </head>
 <body>
     
     <img 
-        src="logo.png"
-        alt="Display Image" 
+        src="tiltpi-logo.svg"
+        alt="Tilt Pi" 
         class="full-screen-image"
     >
     
